@@ -1,14 +1,16 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef } from 'react';
 import {
   ComposableMap,
   Geographies,
   Geography,
   Marker,
-  Annotation,
+  useMapContext,
 } from 'react-simple-maps';
+import { Plane, Ship, Truck, MapPin, Clock, Navigation, X, Pencil, Check } from 'lucide-react';
 import { useTC } from '../contexts/ThemeContext';
 
 type StatusFilter = 'All' | 'In Transit' | 'Delivered' | 'Pending Authorization' | 'Delayed' | 'High Priority';
+type TransportMode = 'air' | 'sea' | 'road';
 
 interface ShipmentRoute {
   id: string;
@@ -20,10 +22,12 @@ interface ShipmentRoute {
   client: string;
   fromCoords: [number, number];
   toCoords: [number, number];
+  transportMode: TransportMode;
+  lastGpsDate: string;
+  lastGpsTime: string;
 }
 
 const GOLD = '#BAAB48';
-
 const GEO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
 
 const routes: ShipmentRoute[] = [
@@ -31,26 +35,31 @@ const routes: ShipmentRoute[] = [
     id: '1', trackingNumber: 'MLCA-2026-001847', origin: 'London, UK', destination: 'New York, USA',
     status: 'In Transit', eta: '2026-06-08', client: 'Tiffany & Co.',
     fromCoords: [-0.1, 51.5], toCoords: [-74.0, 40.7],
+    transportMode: 'air', lastGpsDate: '2026-06-07', lastGpsTime: '14:32 UTC',
   },
   {
     id: '2', trackingNumber: 'MLCA-2026-001846', origin: 'Dubai, UAE', destination: 'Hong Kong',
     status: 'Pending Authorization', eta: '2026-06-10', client: 'Cartier International',
     fromCoords: [55.3, 25.2], toCoords: [114.2, 22.3],
+    transportMode: 'air', lastGpsDate: '2026-06-07', lastGpsTime: '09:14 UTC',
   },
   {
     id: '3', trackingNumber: 'MLCA-2026-001845', origin: 'Zurich, Switzerland', destination: 'Singapore',
     status: 'High Priority', eta: '2026-06-06', client: 'UBS AG',
     fromCoords: [8.5, 47.4], toCoords: [103.8, 1.3],
+    transportMode: 'sea', lastGpsDate: '2026-06-07', lastGpsTime: '06:55 UTC',
   },
   {
     id: '4', trackingNumber: 'MLCA-2026-001844', origin: 'Paris, France', destination: 'Tokyo, Japan',
     status: 'Delivered', eta: '2026-06-03', client: 'Van Cleef & Arpels',
     fromCoords: [2.3, 48.9], toCoords: [139.7, 35.7],
+    transportMode: 'air', lastGpsDate: '2026-06-03', lastGpsTime: '18:41 UTC',
   },
   {
     id: '5', trackingNumber: 'MLCA-2026-001843', origin: 'New York, USA', destination: 'Sydney, Australia',
     status: 'Delayed', eta: '2026-06-12', client: 'Royal Bank of Canada',
     fromCoords: [-74.0, 40.7], toCoords: [151.2, -33.9],
+    transportMode: 'sea', lastGpsDate: '2026-06-07', lastGpsTime: '22:08 UTC',
   },
 ];
 
@@ -67,252 +76,261 @@ const cities = [
 ];
 
 const STATUS_FILTERS: StatusFilter[] = ['All', 'In Transit', 'Delivered', 'Pending Authorization', 'Delayed', 'High Priority'];
-const STATUS_CHIP_LABEL: Record<StatusFilter, string> = {
-  'All': 'All Routes',
-  'In Transit': 'In Transit',
-  'Delivered': 'Delivered',
-  'Pending Authorization': 'Pending Auth',
-  'Delayed': 'Delayed',
-  'High Priority': 'High Priority',
+
+const STATUS_COLOR: Record<string, string> = {
+  'In Transit': '#3b82f6',
+  'Delivered': '#22c55e',
+  'Pending Authorization': '#f97316',
+  'Delayed': '#ef4444',
+  'High Priority': GOLD,
 };
 
-// Great-circle midpoint with arc lift for a curved route
-function getArcPath(
-  from: [number, number],
-  to: [number, number],
-  project: (coords: [number, number]) => [number, number],
-  liftFactor = 0.28
-): string {
-  const [x1, y1] = project(from);
-  const [x2, y2] = project(to);
-  const mx = (x1 + x2) / 2;
-  const my = (y1 + y2) / 2;
-  const dx = x2 - x1;
-  const dy = y2 - y1;
-  const len = Math.sqrt(dx * dx + dy * dy);
-  // Perpendicular lift — pushes arc above the chord
-  const cpx = mx - dy * liftFactor;
-  const cpy = my + dx * liftFactor - len * liftFactor * 0.6;
-  return `M ${x1},${y1} Q ${cpx},${cpy} ${x2},${y2}`;
+function getStatusColor(status: string) {
+  return STATUS_COLOR[status] || GOLD;
 }
 
-// Animated dot component along a path
-function AnimatedDot({ d, duration }: { d: string; duration: string }) {
+function TransportIcon({ mode, size = 14, color = '#111' }: { mode: TransportMode; size?: number; color?: string }) {
+  if (mode === 'air') return <Plane size={size} color={color} strokeWidth={2.2} />;
+  if (mode === 'sea') return <Ship size={size} color={color} strokeWidth={2.2} />;
+  return <Truck size={size} color={color} strokeWidth={2.2} />;
+}
+
+function bezierPoint(t: number, x1: number, y1: number, cpx: number, cpy: number, x2: number, y2: number) {
+  const mt = 1 - t;
+  return {
+    x: mt * mt * x1 + 2 * mt * t * cpx + t * t * x2,
+    y: mt * mt * y1 + 2 * mt * t * cpy + t * t * y2,
+  };
+}
+
+function RouteLayer({
+  routes,
+  activeFilter,
+  isDark,
+  onClickRoute,
+  selectedId,
+}: {
+  routes: ShipmentRoute[];
+  activeFilter: StatusFilter;
+  isDark: boolean;
+  onClickRoute: (r: ShipmentRoute, e: React.MouseEvent) => void;
+  selectedId: string | null;
+}) {
+  const { projection } = useMapContext();
+
   return (
-    <circle r="4" fill={GOLD} opacity="0.95" filter="url(#routeGlow)">
-      <animateMotion dur={duration} repeatCount="indefinite" path={d} />
-    </circle>
+    <>
+      {routes.map(route => {
+        const isVisible = activeFilter === 'All' || route.status === activeFilter;
+        const isDelivered = route.status === 'Delivered';
+        const isDelayed = route.status === 'Delayed';
+
+        const p1 = projection(route.fromCoords);
+        const p2 = projection(route.toCoords);
+        if (!p1 || !p2) return null;
+
+        const [x1, y1] = p1;
+        const [x2, y2] = p2;
+
+        const mx = (x1 + x2) / 2;
+        const my = (y1 + y2) / 2;
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const len = Math.sqrt(dx * dx + dy * dy);
+
+        // Arc control point
+        const cpx = mx - dy * 0.15;
+        const cpy = my + dx * 0.15 - len * 0.12;
+        const d = `M ${x1},${y1} Q ${cpx},${cpy} ${x2},${y2}`;
+
+        // Icon at midpoint (t=0.5)
+        const mid = bezierPoint(0.5, x1, y1, cpx, cpy, x2, y2);
+
+        const routeOpacity = isVisible ? 1 : 0.06;
+
+        const isSelected = selectedId === route.id;
+
+        return (
+          <g key={route.id} opacity={routeOpacity} style={{ transition: 'opacity 0.25s ease' }}>
+            {/* Route line — dashed */}
+            <path
+              d={d}
+              stroke={GOLD}
+              strokeWidth={isVisible ? 1.5 : 1}
+              fill="none"
+              strokeDasharray="6 5"
+              strokeOpacity={isDelivered ? 0.35 : isDelayed ? 0.6 : 0.75}
+              strokeLinecap="round"
+            />
+
+            {/* Hit area on line */}
+            {isVisible && (
+              <path
+                d={d}
+                stroke="transparent"
+                strokeWidth="20"
+                fill="none"
+                style={{ cursor: 'pointer' }}
+                onClick={e => onClickRoute(route, e)}
+              />
+            )}
+
+            {/* Transport icon badge ON the route */}
+            {isVisible && (
+              <g
+                transform={`translate(${mid.x}, ${mid.y})`}
+                style={{ cursor: 'pointer' }}
+                onClick={e => onClickRoute(route, e)}
+              >
+                {/* Selected ring */}
+                {isSelected && (
+                  <circle r="22" fill="none" stroke={GOLD} strokeWidth="2" opacity="0.5" />
+                )}
+                {/* Outer pulse ring for active routes */}
+                {!isDelivered && (
+                  <circle r="20" fill={GOLD} opacity="0.08" />
+                )}
+                {/* Badge shadow */}
+                <circle r="15" fill="rgba(0,0,0,0.35)" transform="translate(1,1.5)" />
+                {/* Badge fill */}
+                <circle
+                  r="15"
+                  fill={isSelected ? (isDark ? '#1e2a1a' : '#fffbea') : (isDark ? '#161b22' : '#ffffff')}
+                  stroke={isSelected ? GOLD : isDelayed ? '#ef4444' : GOLD}
+                  strokeWidth={isSelected ? 2.5 : 1.8}
+                />
+                {/* Status dot — top-right of badge */}
+                <circle
+                  cx="10"
+                  cy="-10"
+                  r="4.5"
+                  fill={getStatusColor(route.status)}
+                  stroke={isDark ? '#161b22' : '#ffffff'}
+                  strokeWidth="1.2"
+                />
+                {/* Icon via foreignObject */}
+                <foreignObject x="-11" y="-11" width="22" height="22" style={{ overflow: 'visible', pointerEvents: 'none' }}>
+                  <div
+                    style={{
+                      width: '22px',
+                      height: '22px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <TransportIcon
+                      mode={route.transportMode}
+                      size={14}
+                      color={isDark ? '#d0c070' : '#8a7a20'}
+                    />
+                  </div>
+                </foreignObject>
+              </g>
+            )}
+          </g>
+        );
+      })}
+    </>
   );
+}
+
+function inputStyle(isDark: boolean): React.CSSProperties {
+  return {
+    background: isDark ? '#111a28' : '#f5f8fc',
+    border: `1px solid ${isDark ? '#2a3e54' : '#c8d8e8'}`,
+    color: isDark ? '#c0cdd8' : '#1a2a38',
+    borderRadius: '5px',
+    padding: '2px 6px',
+    fontSize: '10.5px',
+    outline: 'none',
+    width: '100px',
+    fontWeight: 500,
+  };
+}
+
+const MIN_ZOOM = 100;
+const MAX_ZOOM = 600;
+const ZOOM_STEP = 50;
+
+interface EditDraft {
+  lastGpsDate: string;
+  lastGpsTime: string;
+  origin: string;
+  destination: string;
+  eta: string;
+  status: string;
 }
 
 export function WorldMap() {
   const tc = useTC();
   const [activeFilter, setActiveFilter] = useState<StatusFilter>('All');
-  const [hovered, setHovered] = useState<ShipmentRoute | null>(null);
-  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+  const [selected, setSelected] = useState<ShipmentRoute | null>(null);
+  const [cardPos, setCardPos] = useState({ x: 0, y: 0 });
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState<EditDraft | null>(null);
+  const [overrides, setOverrides] = useState<Record<string, Partial<EditDraft>>>({});
+  const [zoom, setZoom] = useState(175);
   const containerRef = useRef<HTMLDivElement>(null);
-  const projRef = useRef<((coords: [number, number]) => [number, number]) | null>(null);
 
-  const updateTooltipPos = (e: React.MouseEvent) => {
+  const zoomIn = () => setZoom(z => Math.min(z + ZOOM_STEP, MAX_ZOOM));
+  const zoomOut = () => setZoom(z => Math.max(z - ZOOM_STEP, MIN_ZOOM));
+
+  const handleIconClick = (route: ShipmentRoute, e: React.MouseEvent) => {
+    e.stopPropagation();
     const rect = containerRef.current?.getBoundingClientRect();
-    if (rect) setTooltipPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    if (rect) setCardPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    setSelected(route);
+    setIsEditing(false);
+    setDraft(null);
   };
 
-  const filteredRoutes = activeFilter === 'All' ? routes : routes.filter(r => r.status === activeFilter);
+  const closeCard = () => { setSelected(null); setIsEditing(false); setDraft(null); };
 
-  const landFill = tc.isDark ? '#1c2128' : '#c5ccd5';
-  const landHover = tc.isDark ? '#252d36' : '#d2d8df';
-  const landStroke = tc.isDark ? '#252d36' : '#b0bac6';
-  const oceanBg = tc.isDark ? '#050b14' : '#b4cce8';
+  const startEdit = () => {
+    if (!selected) return;
+    const ov = overrides[selected.id] || {};
+    setDraft({
+      lastGpsDate: ov.lastGpsDate ?? selected.lastGpsDate,
+      lastGpsTime: ov.lastGpsTime ?? selected.lastGpsTime,
+      origin: ov.origin ?? selected.origin,
+      destination: ov.destination ?? selected.destination,
+      eta: ov.eta ?? selected.eta,
+      status: ov.status ?? selected.status,
+    });
+    setIsEditing(true);
+  };
+
+  const saveEdit = () => {
+    if (!selected || !draft) return;
+    setOverrides(prev => ({ ...prev, [selected.id]: draft }));
+    setIsEditing(false);
+    setDraft(null);
+  };
+
+  const getField = (route: ShipmentRoute, field: keyof EditDraft): string => {
+    return (overrides[route.id]?.[field] as string) ?? (route[field as keyof ShipmentRoute] as string);
+  };
+
+  // Map colors — closer to real logistics platform (dark tile style)
+  const oceanBg = tc.isDark ? '#0b1320' : '#c8dff0';
+  const landFill = tc.isDark ? '#1c2333' : '#d6dce6';
+  const landHover = tc.isDark ? '#232d40' : '#cdd5e0';
+  const landStroke = tc.isDark ? '#283548' : '#b8c5d4';
+  const graticuleColor = tc.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.04)';
+
+  const cardLeft = Math.min(cardPos.x + 18, (containerRef.current?.offsetWidth ?? 400) - 260);
+  const cardTop = Math.max(cardPos.y - 180, 48);
 
   return (
     <div
       ref={containerRef}
       className={`relative w-full rounded-xl overflow-hidden border ${tc.border}`}
-      style={{ height: '460px', background: oceanBg }}
-      onMouseLeave={() => setHovered(null)}
-      onMouseMove={updateTooltipPos}
+      style={{ height: '520px', background: oceanBg }}
+      onClick={() => { if (selected) closeCard(); }}
     >
-      {/* Globe perspective tilt wrapper */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: '-5% -2%',
-          transform: 'perspective(700px) rotateX(20deg)',
-          transformOrigin: '50% 66%',
-        }}
-      >
-        <ComposableMap
-          projection="geoNaturalEarth1"
-          projectionConfig={{ scale: 153, center: [10, 8] }}
-          style={{ width: '100%', height: '100%' }}
-        >
-          <defs>
-            <filter id="routeGlow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="2.5" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-            <filter id="cityGlow" x="-100%" y="-100%" width="300%" height="300%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-            <radialGradient id="edgeFade" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="transparent" />
-              <stop offset="70%" stopColor="transparent" />
-              <stop offset="100%" stopColor={oceanBg} stopOpacity="0.85" />
-            </radialGradient>
-          </defs>
-
-          {/* Country fills */}
-          <Geographies geography={GEO_URL}>
-            {({ geographies, projection }) => {
-              // Cache the projection function for route arc calculations
-              if (projection && !projRef.current) {
-                projRef.current = (coords: [number, number]) => {
-                  const pt = projection(coords);
-                  return pt ? [pt[0], pt[1]] : [0, 0];
-                };
-              }
-
-              return geographies.map(geo => (
-                <Geography
-                  key={geo.rsmKey}
-                  geography={geo}
-                  fill={landFill}
-                  stroke={landStroke}
-                  strokeWidth={0.4}
-                  style={{
-                    default: { fill: landFill, outline: 'none' },
-                    hover: { fill: landHover, outline: 'none' },
-                    pressed: { fill: landHover, outline: 'none' },
-                  }}
-                />
-              ));
-            }}
-          </Geographies>
-
-          {/* Routes — rendered inside ComposableMap SVG */}
-          <Geographies geography={GEO_URL}>
-            {({ projection }) => {
-              if (!projection) return null;
-              const proj = (coords: [number, number]): [number, number] => {
-                const pt = projection(coords);
-                return pt ? [pt[0], pt[1]] : [0, 0];
-              };
-
-              return (
-                <>
-                  {routes.map(route => {
-                    const isVisible = activeFilter === 'All' || route.status === activeFilter;
-                    const isDelivered = route.status === 'Delivered';
-                    const isPending = route.status === 'Pending Authorization';
-                    const d = getArcPath(route.fromCoords, route.toCoords, proj);
-
-                    return (
-                      <g key={route.id} opacity={isVisible ? 1 : 0.05} style={{ transition: 'opacity 0.3s' }}>
-                        {/* Glow halo */}
-                        <path d={d} stroke={GOLD} strokeWidth="10" fill="none" strokeOpacity="0.1" />
-                        {/* Route line */}
-                        <path
-                          d={d}
-                          stroke={GOLD}
-                          strokeWidth="1.8"
-                          fill="none"
-                          strokeDasharray={isPending ? '7 5' : isDelivered ? '4 4' : 'none'}
-                          strokeOpacity={isDelivered ? 0.45 : 0.88}
-                          filter={isVisible ? 'url(#routeGlow)' : undefined}
-                        />
-                        {/* Moving dot */}
-                        {!isDelivered && isVisible && (
-                          <AnimatedDot d={d} duration={isPending ? '8s' : '5s'} />
-                        )}
-                        {/* Hit area */}
-                        {isVisible && (
-                          <path
-                            d={d}
-                            stroke="transparent"
-                            strokeWidth="20"
-                            fill="none"
-                            style={{ cursor: 'pointer' }}
-                            onMouseEnter={e => { updateTooltipPos(e); setHovered(route); }}
-                          />
-                        )}
-                      </g>
-                    );
-                  })}
-                </>
-              );
-            }}
-          </Geographies>
-
-          {/* City markers */}
-          {cities.map(city => (
-            <Marker key={city.label} coordinates={city.coords}>
-              <g filter="url(#cityGlow)">
-                <circle r="7" fill="none" stroke={GOLD} strokeWidth="1" opacity="0.3" />
-                <circle r="3.2" fill={GOLD} opacity="0.92" />
-                <circle r="1.3" fill="#fff" opacity="0.9" />
-              </g>
-            </Marker>
-          ))}
-
-          {/* City labels for major hubs */}
-          {cities.map(city => (
-            <Annotation
-              key={`label-${city.label}`}
-              subject={city.coords}
-              dx={city.coords[0] < 0 ? -8 : 8}
-              dy={-8}
-              connectorProps={{ stroke: 'none' }}
-            >
-              <text
-                textAnchor={city.coords[0] < 0 ? 'end' : 'start'}
-                style={{ fontSize: '7px', fill: tc.isDark ? 'rgba(186,171,72,0.7)' : 'rgba(140,128,35,0.85)', fontFamily: 'sans-serif' }}
-              >
-                {city.label}
-              </text>
-            </Annotation>
-          ))}
-        </ComposableMap>
-      </div>
-
-      {/* Edge sphere vignette */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background: `radial-gradient(ellipse 94% 88% at 50% 56%, transparent 58%, ${oceanBg} 100%)`,
-          pointerEvents: 'none',
-          zIndex: 5,
-        }}
-      />
-      {/* Top atmospheric fade */}
-      <div
-        style={{
-          position: 'absolute', top: 0, left: 0, right: 0, height: '72px',
-          background: `linear-gradient(to bottom, ${oceanBg} 0%, transparent 100%)`,
-          pointerEvents: 'none', zIndex: 5,
-        }}
-      />
-      {/* Bottom fade */}
-      <div
-        style={{
-          position: 'absolute', bottom: 0, left: 0, right: 0, height: '52px',
-          background: `linear-gradient(to top, ${oceanBg} 0%, transparent 100%)`,
-          pointerEvents: 'none', zIndex: 5,
-        }}
-      />
-
-      {/* ── UI overlays ── */}
-
       {/* Status filter chips */}
-      <div className="absolute top-3 left-3 z-20 flex flex-wrap gap-1.5">
+      <div className="absolute top-3 left-3 z-20 flex flex-wrap gap-1.5" style={{ maxWidth: 'calc(100% - 130px)' }}>
         {STATUS_FILTERS.map(f => {
           const count = f === 'All' ? routes.length : routes.filter(r => r.status === f).length;
           const isActive = activeFilter === f;
@@ -320,21 +338,26 @@ export function WorldMap() {
             <button
               key={f}
               onClick={() => setActiveFilter(f)}
-              className="rounded-full border transition-all"
               style={{
                 padding: '3px 10px',
                 fontSize: '10px',
                 fontWeight: isActive ? 600 : 400,
-                backdropFilter: 'blur(8px)',
+                backdropFilter: 'blur(10px)',
                 background: isActive
-                  ? 'rgba(186,171,72,0.2)'
-                  : tc.isDark ? 'rgba(5,11,20,0.85)' : 'rgba(255,255,255,0.86)',
-                borderColor: isActive ? GOLD : tc.isDark ? '#2a3340' : '#c8d2dc',
-                color: isActive ? GOLD : tc.isDark ? '#6a7d8f' : '#546070',
+                  ? 'rgba(186,171,72,0.18)'
+                  : tc.isDark ? 'rgba(11,19,32,0.88)' : 'rgba(255,255,255,0.9)',
+                border: `1px solid ${isActive ? GOLD : tc.isDark ? '#283548' : '#b8c8d8'}`,
+                color: isActive ? GOLD : tc.isDark ? '#5a7090' : '#4a6070',
+                borderRadius: '20px',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                whiteSpace: 'nowrap',
               }}
             >
-              {STATUS_CHIP_LABEL[f]}
-              {f !== 'All' && <span style={{ marginLeft: '4px', opacity: 0.65 }}>{count}</span>}
+              {f === 'All' ? 'All Routes' : f}
+              {f !== 'All' && count > 0 && (
+                <span style={{ marginLeft: '5px', opacity: 0.6, fontSize: '9px' }}>{count}</span>
+              )}
             </button>
           );
         })}
@@ -342,83 +365,408 @@ export function WorldMap() {
 
       {/* Live badge */}
       <div
-        className="absolute top-3 right-3 flex items-center gap-1.5 rounded-full px-2.5 py-1 border z-20"
+        className="absolute top-3 right-3 z-20 flex items-center gap-1.5 rounded-full px-2.5 py-1"
         style={{
-          background: tc.isDark ? 'rgba(5,11,20,0.9)' : 'rgba(255,255,255,0.9)',
-          borderColor: tc.isDark ? '#2a3340' : '#dce2e8',
+          background: tc.isDark ? 'rgba(11,19,32,0.9)' : 'rgba(255,255,255,0.92)',
+          border: `1px solid ${tc.isDark ? '#283548' : '#b8c8d8'}`,
+          backdropFilter: 'blur(10px)',
           fontSize: '10px',
-          backdropFilter: 'blur(8px)',
         }}
       >
         <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-        <span style={{ color: tc.isDark ? '#6a7d8f' : '#546070' }}>Live Tracking</span>
+        <span style={{ color: tc.isDark ? '#5a7090' : '#4a6070' }}>Live Tracking</span>
       </div>
 
-      {/* Hover tooltip */}
-      {hovered && (
-        <div
-          className="absolute pointer-events-none z-30 rounded-lg shadow-2xl p-3"
-          style={{
-            left: Math.min(tooltipPos.x + 14, (containerRef.current?.offsetWidth ?? 400) - 230),
-            top: Math.max(tooltipPos.y - 95, 44),
-            width: '220px',
-            background: tc.isDark ? '#0d1520' : '#ffffff',
-            border: `1.5px solid ${GOLD}`,
-            fontSize: '12px',
-          }}
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: GOLD }} />
-            <span style={{ fontWeight: 600, color: tc.isDark ? '#e5e5e5' : '#1a1a1a' }}>{hovered.status}</span>
-          </div>
-          <div style={{ color: tc.isDark ? '#8a9aaa' : '#555', lineHeight: 1.65 }}>
-            <div style={{ color: GOLD, fontWeight: 600 }}>{hovered.trackingNumber}</div>
-            <div>{hovered.client}</div>
-            <div>{hovered.origin} → {hovered.destination}</div>
-            <div>ETA: {hovered.eta}</div>
-          </div>
-        </div>
-      )}
+      {/* Map */}
+      <ComposableMap
+        projection="geoMercator"
+        projectionConfig={{ scale: zoom, center: [15, 15] }}
+        style={{ width: '100%', height: '100%' }}
+      >
+        <defs>
+          <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="rgba(0,0,0,0.5)" />
+          </filter>
+        </defs>
 
-      {/* Active filter panel */}
-      {activeFilter !== 'All' && filteredRoutes.length > 0 && (
-        <div
-          className="absolute bottom-3 right-3 z-20 rounded-lg border overflow-hidden"
-          style={{
-            background: tc.isDark ? 'rgba(5,11,20,0.95)' : 'rgba(255,255,255,0.95)',
-            borderColor: GOLD,
-            backdropFilter: 'blur(10px)',
-            width: '212px',
-            maxHeight: '200px',
-            overflowY: 'auto',
-          }}
-        >
-          <div
-            className="px-3 py-2 flex items-center gap-2"
-            style={{ borderBottom: `1px solid ${tc.isDark ? '#1a2535' : '#f0e8c0'}` }}
-          >
-            <span style={{ color: GOLD, fontWeight: 700, fontSize: '11px' }}>{STATUS_CHIP_LABEL[activeFilter]}</span>
-            <span
-              className="ml-auto rounded-full px-1.5"
-              style={{ background: 'rgba(186,171,72,0.18)', color: GOLD, fontSize: '10px', fontWeight: 600 }}
+        {/* Subtle grid lines */}
+        {[-60, -30, 0, 30, 60].map(lat => {
+          // Simplified: just a faint horizontal line suggestion
+          return null;
+        })}
+
+        {/* Countries */}
+        <Geographies geography={GEO_URL}>
+          {({ geographies }) =>
+            geographies.map(geo => (
+              <Geography
+                key={geo.rsmKey}
+                geography={geo}
+                fill={landFill}
+                stroke={landStroke}
+                strokeWidth={0.4}
+                style={{
+                  default: { fill: landFill, outline: 'none' },
+                  hover: { fill: landHover, outline: 'none' },
+                  pressed: { fill: landHover, outline: 'none' },
+                }}
+              />
+            ))
+          }
+        </Geographies>
+
+        {/* Routes + transport icons */}
+        <RouteLayer
+          routes={routes}
+          activeFilter={activeFilter}
+          isDark={tc.isDark}
+          onClickRoute={handleIconClick}
+          selectedId={selected?.id ?? null}
+        />
+
+        {/* City markers */}
+        {cities.map(city => (
+          <Marker key={city.label} coordinates={city.coords}>
+            <circle r="5" fill="none" stroke={GOLD} strokeWidth="1.2" opacity="0.4" />
+            <circle r="2.5" fill={GOLD} opacity="0.85" />
+            <circle r="1" fill="#fff" opacity="0.9" />
+          </Marker>
+        ))}
+
+        {/* City labels */}
+        {cities.map(city => {
+          const isRight = city.coords[0] > 20;
+          return (
+            <Marker key={`lbl-${city.label}`} coordinates={city.coords}>
+              <text
+                textAnchor={isRight ? 'start' : 'end'}
+                x={isRight ? 9 : -9}
+                y={-7}
+                style={{
+                  fontSize: '6px',
+                  fill: tc.isDark ? 'rgba(186,171,72,0.55)' : 'rgba(100,80,10,0.75)',
+                  fontFamily: 'system-ui, sans-serif',
+                  letterSpacing: '0.03em',
+                  pointerEvents: 'none',
+                }}
+              >
+                {city.label}
+              </text>
+            </Marker>
+          );
+        })}
+      </ComposableMap>
+
+      {/* Bottom legend */}
+      <div
+        className="absolute bottom-3 left-3 z-20 flex items-center gap-4 rounded-lg px-3 py-2"
+        style={{
+          background: tc.isDark ? 'rgba(11,19,32,0.9)' : 'rgba(255,255,255,0.92)',
+          border: `1px solid ${tc.isDark ? '#283548' : '#b8c8d8'}`,
+          backdropFilter: 'blur(10px)',
+          fontSize: '10px',
+        }}
+      >
+        {(['air', 'sea'] as TransportMode[]).map(mode => (
+          <div key={mode} className="flex items-center gap-1.5">
+            <div
+              className="flex items-center justify-center rounded-full flex-shrink-0"
+              style={{ width: '20px', height: '20px', background: tc.isDark ? '#161b22' : '#f0f0f0', border: `1px solid ${GOLD}` }}
             >
-              {filteredRoutes.length}
+              <TransportIcon mode={mode} size={11} color={tc.isDark ? '#d0c070' : '#8a7a20'} />
+            </div>
+            <span style={{ color: tc.isDark ? '#5a7090' : '#4a6070' }}>
+              {mode === 'air' ? 'Air Freight' : 'Sea Freight'}
             </span>
           </div>
-          {filteredRoutes.map((r, i) => (
+        ))}
+        <div className="flex items-center gap-1.5">
+          <div className="w-6 flex items-center gap-0.5">
+            {[0, 1, 2].map(i => (
+              <div key={i} style={{ width: '5px', height: '1.5px', background: GOLD, opacity: 0.7, borderRadius: '1px' }} />
+            ))}
+          </div>
+          <span style={{ color: tc.isDark ? '#5a7090' : '#4a6070' }}>Route</span>
+        </div>
+      </div>
+
+      {/* Zoom controls */}
+      <div
+        className="absolute right-3 z-20 flex flex-col rounded-lg overflow-hidden"
+        style={{
+          bottom: '48px',
+          background: tc.isDark ? 'rgba(11,19,32,0.9)' : 'rgba(255,255,255,0.92)',
+          border: `1px solid ${tc.isDark ? '#283548' : '#b8c8d8'}`,
+          backdropFilter: 'blur(10px)',
+        }}
+      >
+        <button
+          onClick={zoomIn}
+          disabled={zoom >= MAX_ZOOM}
+          style={{
+            width: '32px',
+            height: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '18px',
+            fontWeight: 300,
+            color: zoom >= MAX_ZOOM
+              ? (tc.isDark ? '#2a3a4a' : '#c0ccd8')
+              : (tc.isDark ? '#8aa0b8' : '#4a6070'),
+            background: 'transparent',
+            border: 'none',
+            cursor: zoom >= MAX_ZOOM ? 'default' : 'pointer',
+            lineHeight: 1,
+            borderBottom: `1px solid ${tc.isDark ? '#283548' : '#b8c8d8'}`,
+            transition: 'color 0.15s',
+          }}
+          title="Zoom in"
+        >
+          +
+        </button>
+        <button
+          onClick={zoomOut}
+          disabled={zoom <= MIN_ZOOM}
+          style={{
+            width: '32px',
+            height: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '18px',
+            fontWeight: 300,
+            color: zoom <= MIN_ZOOM
+              ? (tc.isDark ? '#2a3a4a' : '#c0ccd8')
+              : (tc.isDark ? '#8aa0b8' : '#4a6070'),
+            background: 'transparent',
+            border: 'none',
+            cursor: zoom <= MIN_ZOOM ? 'default' : 'pointer',
+            lineHeight: 1,
+            transition: 'color 0.15s',
+          }}
+          title="Zoom out"
+        >
+          −
+        </button>
+      </div>
+
+      {/* Route count */}
+      <div
+        className="absolute bottom-3 right-3 z-20 rounded-lg px-2.5 py-1.5"
+        style={{
+          background: tc.isDark ? 'rgba(11,19,32,0.9)' : 'rgba(255,255,255,0.92)',
+          border: `1px solid ${tc.isDark ? '#283548' : '#b8c8d8'}`,
+          backdropFilter: 'blur(10px)',
+          fontSize: '10px',
+          color: tc.isDark ? '#5a7090' : '#4a6070',
+        }}
+      >
+        <span style={{ color: GOLD, fontWeight: 600 }}>{routes.filter(r => activeFilter === 'All' || r.status === activeFilter).length}</span>
+        {' '}active route{routes.filter(r => activeFilter === 'All' || r.status === activeFilter).length !== 1 ? 's' : ''}
+      </div>
+
+      {/* Shipment detail card — click-triggered, editable */}
+      {selected && (
+        <div
+          className="absolute z-30 rounded-xl shadow-2xl overflow-hidden"
+          style={{
+            left: Math.min(cardLeft, (containerRef.current?.offsetWidth ?? 400) - 260),
+            top: Math.min(cardTop, (containerRef.current?.offsetHeight ?? 400) - 420),
+            width: '252px',
+            background: tc.isDark ? '#0d1525' : '#ffffff',
+            border: `1.5px solid ${tc.isDark ? '#283548' : '#d8e2ec'}`,
+            borderTop: `2px solid ${GOLD}`,
+          }}
+          onClick={e => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div
+            className="px-3 py-2.5 flex items-center gap-2.5"
+            style={{ background: tc.isDark ? 'rgba(186,171,72,0.07)' : 'rgba(186,171,72,0.06)', borderBottom: `1px solid ${tc.isDark ? '#1a2535' : '#eef2f6'}` }}
+          >
             <div
-              key={r.id}
-              className="px-3 py-2"
+              className="flex items-center justify-center rounded-lg flex-shrink-0"
+              style={{ width: '30px', height: '30px', background: tc.isDark ? '#161b22' : '#f5f2e0', border: `1px solid ${GOLD}` }}
+            >
+              <TransportIcon mode={selected.transportMode} size={15} color={tc.isDark ? '#d0c070' : '#8a7a20'} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div style={{ color: GOLD, fontWeight: 700, fontSize: '10.5px', letterSpacing: '0.04em' }}>
+                {selected.trackingNumber}
+              </div>
+              <div style={{ color: tc.isDark ? '#6a8090' : '#6a7a88', fontSize: '9.5px', marginTop: '1px' }}>
+                {selected.client}
+              </div>
+            </div>
+            {/* Edit / Save button */}
+            <button
+              onClick={isEditing ? saveEdit : startEdit}
+              title={isEditing ? 'Save changes' : 'Edit shipment'}
               style={{
-                borderTop: i > 0 ? `1px solid ${tc.isDark ? '#121e2c' : '#f0f0f0'}` : undefined,
-                fontSize: '11px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: '26px', height: '26px', borderRadius: '6px',
+                background: isEditing ? `${GOLD}22` : (tc.isDark ? '#1a2535' : '#f0f4f8'),
+                border: `1px solid ${isEditing ? GOLD : (tc.isDark ? '#283548' : '#d0dae6')}`,
+                color: isEditing ? GOLD : (tc.isDark ? '#6a8090' : '#4a6070'),
+                cursor: 'pointer', flexShrink: 0,
               }}
             >
-              <div style={{ color: tc.isDark ? '#e0e0e0' : '#1a1a1a', fontWeight: 600 }}>{r.client}</div>
-              <div style={{ color: tc.isDark ? '#5a7080' : '#666', marginTop: '1px' }}>{r.origin} → {r.destination}</div>
-              <div style={{ color: GOLD, fontSize: '10px', marginTop: '2px', opacity: 0.9 }}>{r.trackingNumber}</div>
+              {isEditing ? <Check size={13} /> : <Pencil size={12} />}
+            </button>
+            {/* Close button */}
+            <button
+              onClick={closeCard}
+              title="Close"
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: '26px', height: '26px', borderRadius: '6px',
+                background: tc.isDark ? '#1a2535' : '#f0f4f8',
+                border: `1px solid ${tc.isDark ? '#283548' : '#d0dae6'}`,
+                color: tc.isDark ? '#6a8090' : '#4a6070',
+                cursor: 'pointer', flexShrink: 0,
+              }}
+            >
+              <X size={13} />
+            </button>
+          </div>
+
+          {/* Body */}
+          <div className="px-3 py-3" style={{ fontSize: '11px' }}>
+
+            {/* Status */}
+            <div className="flex items-center justify-between mb-2">
+              <span style={{ color: tc.isDark ? '#4a6070' : '#6a7a88' }}>Status</span>
+              {isEditing ? (
+                <select
+                  value={draft!.status}
+                  onChange={e => setDraft(d => d ? { ...d, status: e.target.value } : d)}
+                  style={{
+                    background: tc.isDark ? '#111a28' : '#f5f8fc',
+                    border: `1px solid ${GOLD}`,
+                    color: tc.isDark ? '#c0cdd8' : '#1a2a38',
+                    borderRadius: '5px', padding: '2px 5px', fontSize: '10px', outline: 'none',
+                  }}
+                >
+                  {['In Transit', 'Delivered', 'Pending Authorization', 'Delayed', 'High Priority'].map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              ) : (
+                <span
+                  className="px-2 py-0.5 rounded-full"
+                  style={{
+                    background: `${getStatusColor(getField(selected, 'status'))}18`,
+                    border: `1px solid ${getStatusColor(getField(selected, 'status'))}40`,
+                    color: getStatusColor(getField(selected, 'status')),
+                    fontSize: '9px', fontWeight: 600,
+                  }}
+                >
+                  {getField(selected, 'status')}
+                </span>
+              )}
             </div>
-          ))}
+
+            {/* GPS Date */}
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="flex items-center gap-1" style={{ color: tc.isDark ? '#4a6070' : '#6a7a88' }}>
+                <Clock size={9} /> Last GPS Date
+              </span>
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={draft!.lastGpsDate}
+                  onChange={e => setDraft(d => d ? { ...d, lastGpsDate: e.target.value } : d)}
+                  style={inputStyle(tc.isDark)}
+                />
+              ) : (
+                <span style={{ color: tc.isDark ? '#c0cdd8' : '#1a2a38', fontWeight: 500 }}>{getField(selected, 'lastGpsDate')}</span>
+              )}
+            </div>
+
+            {/* GPS Time */}
+            <div className="flex items-center justify-between mb-2.5">
+              <span style={{ color: tc.isDark ? '#4a6070' : '#6a7a88', paddingLeft: '13px' }}>Time</span>
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={draft!.lastGpsTime}
+                  onChange={e => setDraft(d => d ? { ...d, lastGpsTime: e.target.value } : d)}
+                  style={inputStyle(tc.isDark)}
+                />
+              ) : (
+                <span style={{ color: tc.isDark ? '#c0cdd8' : '#1a2a38', fontWeight: 500 }}>{getField(selected, 'lastGpsTime')}</span>
+              )}
+            </div>
+
+            <div style={{ height: '1px', background: tc.isDark ? '#1a2535' : '#eef2f6', marginBottom: '10px' }} />
+
+            {/* Origin */}
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <span className="flex items-center gap-1 flex-shrink-0" style={{ color: tc.isDark ? '#4a6070' : '#6a7a88' }}>
+                <MapPin size={9} /> Origin
+              </span>
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={draft!.origin}
+                  onChange={e => setDraft(d => d ? { ...d, origin: e.target.value } : d)}
+                  style={{ ...inputStyle(tc.isDark), textAlign: 'right', maxWidth: '130px' }}
+                />
+              ) : (
+                <span style={{ color: tc.isDark ? '#c0cdd8' : '#1a2a38', fontWeight: 500, textAlign: 'right' }}>{getField(selected, 'origin')}</span>
+              )}
+            </div>
+
+            {/* Destination */}
+            <div className="flex items-start justify-between gap-2 mb-3">
+              <span className="flex items-center gap-1 flex-shrink-0" style={{ color: tc.isDark ? '#4a6070' : '#6a7a88' }}>
+                <Navigation size={9} /> Destination
+              </span>
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={draft!.destination}
+                  onChange={e => setDraft(d => d ? { ...d, destination: e.target.value } : d)}
+                  style={{ ...inputStyle(tc.isDark), textAlign: 'right', maxWidth: '130px' }}
+                />
+              ) : (
+                <span style={{ color: tc.isDark ? '#c0cdd8' : '#1a2a38', fontWeight: 500, textAlign: 'right' }}>{getField(selected, 'destination')}</span>
+              )}
+            </div>
+
+            {/* ETA */}
+            <div
+              className="flex items-center justify-between rounded-lg px-3 py-2"
+              style={{ background: tc.isDark ? '#111a28' : '#f8f6ee', border: `1px solid ${tc.isDark ? '#1f2d40' : '#e8e0c0'}` }}
+            >
+              <span style={{ color: tc.isDark ? '#4a6070' : '#6a7a88' }}>Estimated Arrival</span>
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={draft!.eta}
+                  onChange={e => setDraft(d => d ? { ...d, eta: e.target.value } : d)}
+                  style={{ ...inputStyle(tc.isDark), color: GOLD, fontWeight: 700, maxWidth: '90px' }}
+                />
+              ) : (
+                <span style={{ color: GOLD, fontWeight: 700 }}>{getField(selected, 'eta')}</span>
+              )}
+            </div>
+
+            {isEditing && (
+              <button
+                onClick={saveEdit}
+                style={{
+                  marginTop: '10px', width: '100%', padding: '7px',
+                  background: GOLD, color: '#1a1a1a', borderRadius: '7px',
+                  border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '11px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
+                }}
+              >
+                <Check size={12} /> Save Changes
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>
