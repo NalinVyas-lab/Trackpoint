@@ -26,12 +26,7 @@ const mockPayments: OutstandingPayment[] = [
   { id: '6', client: 'Bulgari', shipmentId: '6', trackingNumber: 'MLCA-2026-001822', invoiceAmount: '$1,680,500', dueDate: '2026-06-20', daysOverdue: 0, status: 'current', invoiceCount: 7 },
 ];
 
-const agingData = [
-  { name: 'Current', value: 4150150, color: '#BAAB48' },
-  { name: '1-30 Days', value: 2136200, color: '#8b7d3a' },
-  { name: '31-60 Days', value: 3150000, color: '#f59e0b' },
-  { name: '61-90 Days', value: 2875200, color: '#ef4444' },
-];
+// agingData is built inside AccountsReceivable so it can reference ACCENT
 
 const monthlyData = [
   { month: 'Jan', collected: 8500000, outstanding: 2100000 },
@@ -45,6 +40,13 @@ const monthlyData = [
 export function AccountsReceivable() {
   const navigate = useNavigate();
   const tc = useTC();
+  const ACCENT = tc.accent;
+  const agingData = [
+    { name: 'Current', value: 4150150, color: ACCENT },
+    { name: '1-30 Days', value: 2136200, color: '#8b7d3a' },
+    { name: '31-60 Days', value: 3150000, color: '#f59e0b' },
+    { name: '61-90 Days', value: 2875200, color: '#ef4444' },
+  ];
   const [selectedPayments, setSelectedPayments] = useState<Set<string>>(new Set());
 
   const togglePayment = (id: string) => {
@@ -78,7 +80,7 @@ export function AccountsReceivable() {
           <div className="flex gap-5">
             <div>
               <div className={`text-xs ${tc.subtext}`}>Total Outstanding</div>
-              <div style={{ fontSize: '20px', fontWeight: 600, color: '#BAAB48' }}>
+              <div style={{ fontSize: '20px', fontWeight: 600, color: ACCENT }}>
                 ${(totalOutstanding / 1000000).toFixed(1)}M
               </div>
             </div>
@@ -127,12 +129,12 @@ export function AccountsReceivable() {
                 <XAxis dataKey="month" stroke={tc.isDark ? '#999' : '#888'} />
                 <YAxis stroke={tc.isDark ? '#999' : '#888'} tickFormatter={v => `$${v / 1000000}M`} />
                 <Tooltip contentStyle={tc.tooltipStyle} formatter={(v: number) => `$${(v / 1000000).toFixed(1)}M`} />
-                <Bar dataKey="collected" fill="#BAAB48" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="collected" fill={ACCENT} radius={[4, 4, 0, 0]} />
                 <Bar dataKey="outstanding" fill="#ef4444" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
             <div className="flex items-center justify-center gap-5 mt-3">
-              <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-[#BAAB48]" /><span className={`text-sm ${tc.subtext}`}>Collected</span></div>
+              <div className="flex items-center gap-2"><div className="w-3 h-3 rounded" style={{ background: ACCENT }} /><span className={`text-sm ${tc.subtext}`}>Collected</span></div>
               <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-[#ef4444]" /><span className={`text-sm ${tc.subtext}`}>Outstanding</span></div>
             </div>
           </div>
@@ -150,7 +152,8 @@ export function AccountsReceivable() {
             {selectedPayments.size > 0 && (
               <button
                 onClick={() => { const first = Array.from(selectedPayments)[0]; const p = mockPayments.find(p => p.id === first); if (p) navigate(`/invoice/${p.shipmentId}`); }}
-                className="bg-[#BAAB48] hover:bg-[#a89940] text-[#1a1a1a] px-5 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm"
+                className="px-5 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm"
+                style={{ background: ACCENT, color: tc.isDark ? '#0B2B26' : '#DAF1DE' }}
               >
                 <Send className="w-4 h-4" />
                 Send Invoice Package
@@ -166,7 +169,7 @@ export function AccountsReceivable() {
                   <th className="px-5 py-3.5 text-left">
                     <input type="checkbox" checked={selectedPayments.size === mockPayments.length}
                       onChange={e => setSelectedPayments(e.target.checked ? new Set(mockPayments.map(p => p.id)) : new Set())}
-                      className="w-4 h-4 rounded accent-[#BAAB48]" />
+                      className="w-4 h-4 rounded" style={{ accentColor: ACCENT }} />
                   </th>
                   {['Client', 'Tracking Number', 'Amount', 'Due Date', 'Status', 'Invoices', 'Actions'].map(h => (
                     <th key={h} className={`px-5 py-3.5 text-left text-xs ${tc.subtext}`} style={{ fontWeight: 500 }}>{h}</th>
@@ -179,10 +182,10 @@ export function AccountsReceivable() {
                   return (
                     <tr key={payment.id} className={`border-b ${tc.border} ${tc.hoverBg} transition-colors`}>
                       <td className="px-5 py-4">
-                        <input type="checkbox" checked={selectedPayments.has(payment.id)} onChange={() => togglePayment(payment.id)} className="w-4 h-4 rounded accent-[#BAAB48]" />
+                        <input type="checkbox" checked={selectedPayments.has(payment.id)} onChange={() => togglePayment(payment.id)} className="w-4 h-4 rounded" style={{ accentColor: ACCENT }} />
                       </td>
                       <td className="px-5 py-4 text-sm" style={{ fontWeight: 500 }}>{payment.client}</td>
-                      <td className="px-5 py-4"><code className="text-[#BAAB48] text-sm">{payment.trackingNumber}</code></td>
+                      <td className="px-5 py-4"><code className="text-sm" style={{ color: ACCENT }}>{payment.trackingNumber}</code></td>
                       <td className="px-5 py-4 text-sm" style={{ fontWeight: 600 }}>{payment.invoiceAmount}</td>
                       <td className="px-5 py-4">
                         <div className="text-sm">{payment.dueDate}</div>
@@ -197,7 +200,7 @@ export function AccountsReceivable() {
                       </td>
                       <td className={`px-5 py-4 text-sm ${tc.subtext}`}>{payment.invoiceCount} files</td>
                       <td className="px-5 py-4">
-                        <button onClick={() => navigate(`/invoice/${payment.shipmentId}`)} className="text-[#BAAB48] hover:text-[#a89940] text-sm transition-colors">View Package</button>
+                        <button onClick={() => navigate(`/invoice/${payment.shipmentId}`)} className="text-sm transition-colors" style={{ color: ACCENT }}>View Package</button>
                       </td>
                     </tr>
                   );
@@ -214,10 +217,10 @@ export function AccountsReceivable() {
                 <div key={payment.id} className="p-4">
                   <div className="flex items-start justify-between mb-2.5">
                     <div className="flex items-start gap-2.5">
-                      <input type="checkbox" checked={selectedPayments.has(payment.id)} onChange={() => togglePayment(payment.id)} className="mt-0.5 w-4 h-4 rounded accent-[#BAAB48]" />
+                      <input type="checkbox" checked={selectedPayments.has(payment.id)} onChange={() => togglePayment(payment.id)} className="mt-0.5 w-4 h-4 rounded" style={{ accentColor: ACCENT }} />
                       <div>
                         <div className="text-sm" style={{ fontWeight: 600 }}>{payment.client}</div>
-                        <code className={`text-xs text-[#BAAB48]`}>{payment.trackingNumber}</code>
+                        <code className="text-xs" style={{ color: ACCENT }}>{payment.trackingNumber}</code>
                       </div>
                     </div>
                     <span className={`px-2 py-1 rounded-full text-[10px] border flex-shrink-0 ${si.color}`}>{si.label}</span>
@@ -227,7 +230,7 @@ export function AccountsReceivable() {
                     <div className="flex justify-between"><span>Due Date:</span><span className={tc.text}>{payment.dueDate}</span></div>
                     {payment.daysOverdue > 0 && <div className="flex items-center gap-1 text-red-400 text-xs"><AlertCircle className="w-3 h-3" />{payment.daysOverdue} days overdue</div>}
                   </div>
-                  <button onClick={() => navigate(`/invoice/${payment.shipmentId}`)} className={`w-full border ${tc.border} hover:border-[#BAAB48] text-[#BAAB48] py-2 rounded-lg text-sm transition-colors ${tc.innerBg} ml-6`} style={{ width: 'calc(100% - 1.5rem)' }}>
+                  <button onClick={() => navigate(`/invoice/${payment.shipmentId}`)} className={`w-full border ${tc.border} py-2 rounded-lg text-sm transition-colors ${tc.innerBg} ml-6`} style={{ width: 'calc(100% - 1.5rem)', color: ACCENT }}>
                     View Package
                   </button>
                 </div>

@@ -30,16 +30,16 @@ const mockInvoices: Invoice[] = [
   { id: '12', invoiceNo: 'INV-2026-0836', client: 'Harry Winston',        shipmentId: 'MLCA-2026-001836', amount: '$234,100.00', dueDate: '2026-06-10', status: 'Paid' },
 ];
 
-const statusConfig: Record<InvoiceStatus, { color: string; bg: string; border: string }> = {
+const buildStatusConfig = (accent: string): Record<InvoiceStatus, { color: string; bg: string; border: string; accentStyle?: React.CSSProperties }> => ({
   'Draft':          { color: 'text-gray-400',   bg: 'bg-gray-500/15',   border: 'border-gray-500/30' },
   'Approved':       { color: 'text-blue-400',    bg: 'bg-blue-500/15',   border: 'border-blue-500/30' },
-  'Processed':      { color: 'text-[#BAAB48]',   bg: 'bg-[#BAAB48]/15',  border: 'border-[#BAAB48]/30' },
+  'Processed':      { color: '', bg: '', border: '', accentStyle: { color: accent, background: `${accent}26`, borderColor: `${accent}4d` } },
   'Reminded':       { color: 'text-purple-400',  bg: 'bg-purple-500/15', border: 'border-purple-500/30' },
   'Refused':        { color: 'text-red-400',     bg: 'bg-red-500/15',    border: 'border-red-500/30' },
   'Paid':           { color: 'text-green-400',   bg: 'bg-green-500/15',  border: 'border-green-500/30' },
   'Partially Paid': { color: 'text-teal-400',    bg: 'bg-teal-500/15',   border: 'border-teal-500/30' },
   'Overdue':        { color: 'text-orange-400',  bg: 'bg-orange-500/15', border: 'border-orange-500/30' },
-};
+});
 
 const allStatuses: InvoiceStatus[] = ['Draft', 'Approved', 'Processed', 'Reminded', 'Refused', 'Paid', 'Partially Paid', 'Overdue'];
 
@@ -48,6 +48,8 @@ const INITIAL_REMINDER_COUNTS: Record<string, number> = { '5': 1 };
 
 export function TrackInvoice() {
   const tc = useTC();
+  const ACCENT = tc.accent;
+  const statusConfig = buildStatusConfig(ACCENT);
   const [activeStatus, setActiveStatus] = useState<InvoiceStatus | null>(null);
   const [search, setSearch] = useState('');
   const [markedPaid, setMarkedPaid] = useState<Set<string>>(new Set());
@@ -135,12 +137,15 @@ export function TrackInvoice() {
                 onClick={() => setActiveStatus(isActive ? null : status)}
                 className={`rounded-lg p-3 border text-left transition-all ${
                   isActive
-                    ? `${cfg.bg} ${cfg.border} ring-2 ring-offset-1 ${tc.isDark ? 'ring-offset-[#1a1a1a]' : 'ring-offset-[#f5f5f5]'}`
+                    ? cfg.accentStyle
+                      ? `ring-2 ring-offset-1 ${tc.isDark ? 'ring-offset-[#1a1a1a]' : 'ring-offset-[#f5f5f5]'}`
+                      : `${cfg.bg} ${cfg.border} ring-2 ring-offset-1 ${tc.isDark ? 'ring-offset-[#1a1a1a]' : 'ring-offset-[#f5f5f5]'}`
                     : `${tc.cardBg} ${tc.border} ${tc.hoverBg}`
                 }`}
+                style={isActive && cfg.accentStyle ? { background: cfg.accentStyle.background, borderColor: cfg.accentStyle.borderColor } : undefined}
               >
-                <div className={`text-xl mb-0.5 ${cfg.color}`} style={{ fontWeight: 700 }}>{count}</div>
-                <div className={`text-xs ${isActive ? cfg.color : tc.subtext}`}>{status}</div>
+                <div className={`text-xl mb-0.5 ${cfg.accentStyle ? '' : cfg.color}`} style={{ fontWeight: 700, ...(cfg.accentStyle ? { color: cfg.accentStyle.color } : {}) }}>{count}</div>
+                <div className={`text-xs ${isActive ? (cfg.accentStyle ? '' : cfg.color) : tc.subtext}`} style={isActive && cfg.accentStyle ? { color: cfg.accentStyle.color } : undefined}>{status}</div>
                 {status === 'Reminded' && totalReminders > 0 && (
                   <div className="text-[9px] mt-0.5 text-purple-400 opacity-80">
                     {totalReminders} reminder{totalReminders !== 1 ? 's' : ''} sent
@@ -161,7 +166,9 @@ export function TrackInvoice() {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search invoice, client, shipment..."
-                className={`w-full border rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-[#BAAB48] focus:ring-1 focus:ring-[#BAAB48] ${tc.inputBg}`}
+                className={`w-full border rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none ${tc.inputBg}`}
+                onFocus={e => { e.currentTarget.style.borderColor = ACCENT; e.currentTarget.style.boxShadow = `0 0 0 1px ${ACCENT}`; }}
+                onBlur={e => { e.currentTarget.style.borderColor = ''; e.currentTarget.style.boxShadow = ''; }}
               />
             </div>
             <div className="flex items-center gap-3">
@@ -177,7 +184,7 @@ export function TrackInvoice() {
               <span className={tc.subtext + ' text-sm'}>
                 {filtered.length} invoice{filtered.length !== 1 ? 's' : ''}
                 {filtered.length > 0 && (
-                  <span className="ml-2 text-[#BAAB48]" style={{ fontWeight: 600 }}>
+                  <span className="ml-2" style={{ fontWeight: 600, color: ACCENT }}>
                     ${(totalFiltered / 1000).toFixed(0)}K
                   </span>
                 )}
@@ -216,7 +223,7 @@ export function TrackInvoice() {
                     return (
                       <tr key={inv.id} className={`border-b ${tc.border} ${tc.hoverBg} transition-colors`}>
                         <td className="px-4 py-3.5">
-                          <code className="text-[#BAAB48] text-sm">{inv.invoiceNo}</code>
+                          <code className="text-sm" style={{ color: ACCENT }}>{inv.invoiceNo}</code>
                         </td>
                         <td className="px-4 py-3.5 text-sm" style={{ fontWeight: 500 }}>{inv.client}</td>
                         <td className="px-4 py-3.5">
@@ -225,7 +232,10 @@ export function TrackInvoice() {
                         <td className="px-4 py-3.5 text-sm" style={{ fontWeight: 600 }}>{inv.amount}</td>
                         <td className={`px-4 py-3.5 text-sm ${tc.subtext}`}>{inv.dueDate}</td>
                         <td className="px-4 py-3.5">
-                          <span className={`px-2.5 py-1 rounded-full text-xs border ${cfg.color} ${cfg.bg} ${cfg.border}`}>
+                          <span
+                            className={`px-2.5 py-1 rounded-full text-xs border ${cfg.accentStyle ? '' : `${cfg.color} ${cfg.bg} ${cfg.border}`}`}
+                            style={cfg.accentStyle ?? undefined}
+                          >
                             {statusLabel}
                           </span>
                         </td>
@@ -308,11 +318,14 @@ export function TrackInvoice() {
                   <div key={inv.id} className="p-4">
                     <div className="flex items-start justify-between mb-3">
                       <div>
-                        <code className="text-[#BAAB48] text-sm">{inv.invoiceNo}</code>
+                        <code className="text-sm" style={{ color: ACCENT }}>{inv.invoiceNo}</code>
                         <div className="text-sm mt-0.5" style={{ fontWeight: 600 }}>{inv.client}</div>
                         <code className={`text-xs ${tc.subtext}`}>{inv.shipmentId}</code>
                       </div>
-                      <span className={`px-2 py-1 rounded-full text-[10px] border flex-shrink-0 ${cfg.color} ${cfg.bg} ${cfg.border}`}>
+                      <span
+                        className={`px-2 py-1 rounded-full text-[10px] border flex-shrink-0 ${cfg.accentStyle ? '' : `${cfg.color} ${cfg.bg} ${cfg.border}`}`}
+                        style={cfg.accentStyle ?? undefined}
+                      >
                         {statusLabel}
                       </span>
                     </div>
@@ -334,7 +347,7 @@ export function TrackInvoice() {
                         style={{
                           borderColor: reminderCount > 0 ? '#7c3aed60' : tc.isDark ? '#333' : '#ddd',
                           background: reminderCount > 0 ? 'rgba(124,58,237,0.1)' : 'transparent',
-                          color: reminderCount > 0 ? '#a78bfa' : '#BAAB48',
+                          color: reminderCount > 0 ? '#a78bfa' : ACCENT,
                         }}
                       >
                         <Bell className="w-3.5 h-3.5" />

@@ -27,7 +27,6 @@ interface ShipmentRoute {
   lastGpsTime: string;
 }
 
-const GOLD = '#BAAB48';
 const GEO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
 
 const routes: ShipmentRoute[] = [
@@ -82,11 +81,11 @@ const STATUS_COLOR: Record<string, string> = {
   'Delivered': '#22c55e',
   'Pending Authorization': '#f97316',
   'Delayed': '#ef4444',
-  'High Priority': GOLD,
+  'High Priority': '#BAAB48',
 };
 
 function getStatusColor(status: string) {
-  return STATUS_COLOR[status] || GOLD;
+  return STATUS_COLOR[status] || '#BAAB48';
 }
 
 function TransportIcon({ mode, size = 14, color = '#111' }: { mode: TransportMode; size?: number; color?: string }) {
@@ -107,12 +106,14 @@ function RouteLayer({
   routes,
   activeFilter,
   isDark,
+  accent,
   onClickRoute,
   selectedId,
 }: {
   routes: ShipmentRoute[];
   activeFilter: StatusFilter;
   isDark: boolean;
+  accent: string;
   onClickRoute: (r: ShipmentRoute, e: React.MouseEvent) => void;
   selectedId: string | null;
 }) {
@@ -155,7 +156,7 @@ function RouteLayer({
             {/* Route line — dashed */}
             <path
               d={d}
-              stroke={GOLD}
+              stroke={accent}
               strokeWidth={isVisible ? 1.5 : 1}
               fill="none"
               strokeDasharray="6 5"
@@ -184,11 +185,11 @@ function RouteLayer({
               >
                 {/* Selected ring */}
                 {isSelected && (
-                  <circle r="22" fill="none" stroke={GOLD} strokeWidth="2" opacity="0.5" />
+                  <circle r="22" fill="none" stroke={accent} strokeWidth="2" opacity="0.5" />
                 )}
                 {/* Outer pulse ring for active routes */}
                 {!isDelivered && (
-                  <circle r="20" fill={GOLD} opacity="0.08" />
+                  <circle r="20" fill={accent} opacity="0.08" />
                 )}
                 {/* Badge shadow */}
                 <circle r="15" fill="rgba(0,0,0,0.35)" transform="translate(1,1.5)" />
@@ -196,7 +197,7 @@ function RouteLayer({
                 <circle
                   r="15"
                   fill={isSelected ? (isDark ? '#1e2a1a' : '#fffbea') : (isDark ? '#161b22' : '#ffffff')}
-                  stroke={isSelected ? GOLD : isDelayed ? '#ef4444' : GOLD}
+                  stroke={isSelected ? accent : isDelayed ? '#ef4444' : accent}
                   strokeWidth={isSelected ? 2.5 : 1.8}
                 />
                 {/* Status dot — top-right of badge */}
@@ -264,6 +265,7 @@ interface EditDraft {
 
 export function WorldMap() {
   const tc = useTC();
+  const GOLD = tc.accent;
   const [activeFilter, setActiveFilter] = useState<StatusFilter>('All');
   const [selected, setSelected] = useState<ShipmentRoute | null>(null);
   const [cardPos, setCardPos] = useState({ x: 0, y: 0 });
@@ -313,10 +315,10 @@ export function WorldMap() {
   };
 
   // Map colors — closer to real logistics platform (dark tile style)
-  const oceanBg = tc.isDark ? '#0b1320' : '#c8dff0';
-  const landFill = tc.isDark ? '#1c2333' : '#d6dce6';
-  const landHover = tc.isDark ? '#232d40' : '#cdd5e0';
-  const landStroke = tc.isDark ? '#283548' : '#b8c5d4';
+  const oceanBg = tc.isDark ? '#0b1320' : '#0d1a2e';
+  const landFill = tc.isDark ? '#1c2333' : '#1c2b40';
+  const landHover = tc.isDark ? '#232d40' : '#243550';
+  const landStroke = tc.isDark ? '#283548' : '#2a3d58';
   const graticuleColor = tc.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.04)';
 
   const cardLeft = Math.min(cardPos.x + 18, (containerRef.current?.offsetWidth ?? 400) - 260);
@@ -345,9 +347,9 @@ export function WorldMap() {
                 backdropFilter: 'blur(10px)',
                 background: isActive
                   ? 'rgba(186,171,72,0.18)'
-                  : tc.isDark ? 'rgba(11,19,32,0.88)' : 'rgba(255,255,255,0.9)',
-                border: `1px solid ${isActive ? GOLD : tc.isDark ? '#283548' : '#b8c8d8'}`,
-                color: isActive ? GOLD : tc.isDark ? '#5a7090' : '#4a6070',
+                  : 'rgba(13,26,46,0.88)',
+                border: `1px solid ${isActive ? GOLD : '#2a3d58'}`,
+                color: isActive ? GOLD : '#6a8aaa',
                 borderRadius: '20px',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
@@ -367,14 +369,14 @@ export function WorldMap() {
       <div
         className="absolute top-3 right-3 z-20 flex items-center gap-1.5 rounded-full px-2.5 py-1"
         style={{
-          background: tc.isDark ? 'rgba(11,19,32,0.9)' : 'rgba(255,255,255,0.92)',
-          border: `1px solid ${tc.isDark ? '#283548' : '#b8c8d8'}`,
+          background: 'rgba(13,26,46,0.9)',
+          border: '1px solid #2a3d58',
           backdropFilter: 'blur(10px)',
           fontSize: '10px',
         }}
       >
         <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-        <span style={{ color: tc.isDark ? '#5a7090' : '#4a6070' }}>Live Tracking</span>
+        <span style={{ color: '#6a8aaa' }}>Live Tracking</span>
       </div>
 
       {/* Map */}
@@ -420,6 +422,7 @@ export function WorldMap() {
           routes={routes}
           activeFilter={activeFilter}
           isDark={tc.isDark}
+          accent={GOLD}
           onClickRoute={handleIconClick}
           selectedId={selected?.id ?? null}
         />
@@ -461,8 +464,8 @@ export function WorldMap() {
       <div
         className="absolute bottom-3 left-3 z-20 flex items-center gap-4 rounded-lg px-3 py-2"
         style={{
-          background: tc.isDark ? 'rgba(11,19,32,0.9)' : 'rgba(255,255,255,0.92)',
-          border: `1px solid ${tc.isDark ? '#283548' : '#b8c8d8'}`,
+          background: 'rgba(13,26,46,0.9)',
+          border: '1px solid #2a3d58',
           backdropFilter: 'blur(10px)',
           fontSize: '10px',
         }}
@@ -471,11 +474,11 @@ export function WorldMap() {
           <div key={mode} className="flex items-center gap-1.5">
             <div
               className="flex items-center justify-center rounded-full flex-shrink-0"
-              style={{ width: '20px', height: '20px', background: tc.isDark ? '#161b22' : '#f0f0f0', border: `1px solid ${GOLD}` }}
+              style={{ width: '20px', height: '20px', background: '#161b22', border: `1px solid ${GOLD}` }}
             >
               <TransportIcon mode={mode} size={11} color={tc.isDark ? '#d0c070' : '#8a7a20'} />
             </div>
-            <span style={{ color: tc.isDark ? '#5a7090' : '#4a6070' }}>
+            <span style={{ color: '#6a8aaa' }}>
               {mode === 'air' ? 'Air Freight' : 'Sea Freight'}
             </span>
           </div>
@@ -486,7 +489,7 @@ export function WorldMap() {
               <div key={i} style={{ width: '5px', height: '1.5px', background: GOLD, opacity: 0.7, borderRadius: '1px' }} />
             ))}
           </div>
-          <span style={{ color: tc.isDark ? '#5a7090' : '#4a6070' }}>Route</span>
+          <span style={{ color: '#6a8aaa' }}>Route</span>
         </div>
       </div>
 
@@ -495,8 +498,8 @@ export function WorldMap() {
         className="absolute right-3 z-20 flex flex-col rounded-lg overflow-hidden"
         style={{
           bottom: '48px',
-          background: tc.isDark ? 'rgba(11,19,32,0.9)' : 'rgba(255,255,255,0.92)',
-          border: `1px solid ${tc.isDark ? '#283548' : '#b8c8d8'}`,
+          background: 'rgba(13,26,46,0.9)',
+          border: '1px solid #2a3d58',
           backdropFilter: 'blur(10px)',
         }}
       >
@@ -555,11 +558,11 @@ export function WorldMap() {
       <div
         className="absolute bottom-3 right-3 z-20 rounded-lg px-2.5 py-1.5"
         style={{
-          background: tc.isDark ? 'rgba(11,19,32,0.9)' : 'rgba(255,255,255,0.92)',
-          border: `1px solid ${tc.isDark ? '#283548' : '#b8c8d8'}`,
+          background: 'rgba(13,26,46,0.9)',
+          border: '1px solid #2a3d58',
           backdropFilter: 'blur(10px)',
           fontSize: '10px',
-          color: tc.isDark ? '#5a7090' : '#4a6070',
+          color: '#6a8aaa',
         }}
       >
         <span style={{ color: GOLD, fontWeight: 600 }}>{routes.filter(r => activeFilter === 'All' || r.status === activeFilter).length}</span>

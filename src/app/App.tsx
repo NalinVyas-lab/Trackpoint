@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { Dashboard } from './components/Dashboard';
 import { ShipmentTracking } from './components/ShipmentTracking';
+import { ShipmentList } from './components/ShipmentList';
 import { AccountsReceivable } from './components/AccountsReceivable';
 import { InvoicePackage } from './components/InvoicePackage';
 import { TrackInvoice } from './components/TrackInvoice';
@@ -15,6 +16,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/track-invoice" element={<TrackInvoice />} />
+          <Route path="/tracking" element={<ShipmentList />} />
           <Route path="/tracking/:trackingNumber" element={<ShipmentTracking />} />
           <Route path="/accounts-receivable" element={<AccountsReceivable />} />
           <Route path="/invoice/:shipmentId" element={<InvoicePackage />} />

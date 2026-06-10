@@ -40,31 +40,43 @@ export function useTC() {
   const { isDark } = useTheme();
   return {
     isDark,
-    pageBg: isDark ? 'bg-[#1a1a1a]' : 'bg-[#f5f5f5]',
-    cardBg: isDark ? 'bg-[#242424]' : 'bg-white',
-    innerBg: isDark ? 'bg-[#1a1a1a]' : 'bg-[#f8f8f8]',
-    headerBg: isDark ? 'bg-[#242424] border-[#333333]' : 'bg-white border-[#e5e5e5]',
-    tableHeaderBg: isDark ? 'bg-[#1f1f1f]' : 'bg-[#f3f3f3]',
-    hoverBg: isDark ? 'hover:bg-[#2a2a2a]' : 'hover:bg-[#fafafa]',
-    border: isDark ? 'border-[#333333]' : 'border-[#e5e5e5]',
-    divider: isDark ? 'divide-[#333333]' : 'divide-[#e5e5e5]',
-    text: isDark ? 'text-[#e5e5e5]' : 'text-[#1a1a1a]',
-    subtext: isDark ? 'text-[#999999]' : 'text-[#666666]',
+    // accent hex values for inline styles
+    accent: isDark ? '#DAF1DE' : '#0B2B26',
+    accentMuted: isDark ? 'rgba(218,241,222,0.15)' : 'rgba(11,43,38,0.12)',
+    accentFaint: isDark ? 'rgba(218,241,222,0.07)' : 'rgba(11,43,38,0.06)',
+    accentBorder: isDark ? 'rgba(218,241,222,0.25)' : 'rgba(11,43,38,0.22)',
+
+    pageBg: isDark
+      ? 'bg-gradient-to-br from-[#040f0d] via-[#0B2B26] to-[#0d3329]'
+      : 'bg-gradient-to-br from-[#DAF1DE] via-[#c5e8cb] to-[#b2deba]',
+    cardBg: isDark
+      ? 'bg-gradient-to-b from-[#0f2e28] to-[#0a2420]'
+      : 'bg-gradient-to-b from-white to-[#edf8ef]',
+    innerBg: isDark ? 'bg-[#0a2018]' : 'bg-[#e8f5ea]',
+    headerBg: isDark
+      ? 'bg-[#091e1a] border-[#163d36]'
+      : 'bg-[#DAF1DE] border-[#a5d8ae]',
+    tableHeaderBg: isDark ? 'bg-[#0a2018]' : 'bg-[#c8ecd0]',
+    hoverBg: isDark ? 'hover:bg-[#0f2e28]' : 'hover:bg-[#d4f0d9]',
+    border: isDark ? 'border-[#163d36]' : 'border-[#a5d8ae]',
+    divider: isDark ? 'divide-[#163d36]' : 'divide-[#a5d8ae]',
+    text: isDark ? 'text-[#DAF1DE]' : 'text-[#0B2B26]',
+    subtext: isDark ? 'text-[#6fa894]' : 'text-[#2e6b5e]',
     inputBg: isDark
-      ? 'bg-[#1a1a1a] border-[#333333] text-[#e5e5e5] placeholder:text-[#666666]'
-      : 'bg-white border-[#d5d5d5] text-[#1a1a1a] placeholder:text-[#aaaaaa]',
+      ? 'bg-[#0a2018] border-[#163d36] text-[#DAF1DE] placeholder:text-[#3d7a6a]'
+      : 'bg-white border-[#a5d8ae] text-[#0B2B26] placeholder:text-[#7ab89c]',
     tooltipStyle: isDark
-      ? { backgroundColor: '#242424', border: '1px solid #333333', borderRadius: '8px', color: '#e5e5e5' }
-      : { backgroundColor: '#ffffff', border: '1px solid #e5e5e5', borderRadius: '8px', color: '#1a1a1a' },
+      ? { backgroundColor: '#0f2e28', border: '1px solid #163d36', borderRadius: '8px', color: '#DAF1DE' }
+      : { backgroundColor: '#ffffff', border: '1px solid #a5d8ae', borderRadius: '8px', color: '#0B2B26' },
     navItemInactive: isDark
-      ? 'text-[#999999] hover:text-[#e5e5e5] hover:bg-[#333333]'
-      : 'text-[#666666] hover:text-[#1a1a1a] hover:bg-[#f0f0f0]',
+      ? 'text-[#6fa894] hover:text-[#DAF1DE] hover:bg-[#163d36]'
+      : 'text-[#2e6b5e] hover:text-[#0B2B26] hover:bg-[#b8e4c4]',
     secondaryBtn: isDark
-      ? 'bg-[#333333] hover:bg-[#3a3a3a] text-[#e5e5e5]'
-      : 'bg-[#e8e8e8] hover:bg-[#e0e0e0] text-[#1a1a1a]',
-    mapOcean: isDark ? '#0d0d0d' : '#dbeafe',
-    mapLand: isDark ? '#2a2a2a' : '#d1d5db',
-    mapLandStroke: isDark ? '#333333' : '#b0b7c0',
-    mapGrid: isDark ? '#BAAB48' : '#BAAB48',
+      ? 'bg-[#163d36] hover:bg-[#1d4d44] text-[#DAF1DE]'
+      : 'bg-[#b8e4c4] hover:bg-[#a5d8ae] text-[#0B2B26]',
+    mapOcean: isDark ? '#030d0b' : '#c5e8cb',
+    mapLand: isDark ? '#163d36' : '#0B2B26',
+    mapLandStroke: isDark ? '#1d4d44' : '#0a2420',
+    mapGrid: isDark ? '#DAF1DE' : '#0B2B26',
   };
 }

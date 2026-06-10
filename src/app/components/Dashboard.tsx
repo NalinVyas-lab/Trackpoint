@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
   Search, TrendingUp, Package, Clock, CheckCircle, DollarSign,
-  ArrowRight, Globe, Plane, Ship, Truck, Pencil, Check, X,
+  Globe, Plane, Ship, Truck, Pencil, Check, X,
 } from 'lucide-react';
 import { useTC } from '../contexts/ThemeContext';
 import { NavBar } from './NavBar';
@@ -110,7 +110,7 @@ function EditModal({ shipment, isDark, tc, onSave, onClose }: EditModalProps) {
           overflowY: 'auto',
           background: isDark ? '#0d1525' : '#ffffff',
           border: `1.5px solid ${isDark ? '#283548' : '#d8e2ec'}`,
-          borderTop: '2px solid #BAAB48',
+          borderTop: `2px solid ${tc.accent}`,
         }}
         onClick={e => e.stopPropagation()}
       >
@@ -120,7 +120,7 @@ function EditModal({ shipment, isDark, tc, onSave, onClose }: EditModalProps) {
           style={{ background: isDark ? 'rgba(186,171,72,0.07)' : 'rgba(186,171,72,0.05)', borderBottom: `1px solid ${isDark ? '#1a2535' : '#eef2f6'}` }}
         >
           <div>
-            <div style={{ color: '#BAAB48', fontWeight: 700, fontSize: '12px', letterSpacing: '0.04em' }}>
+            <div style={{ color: tc.accent, fontWeight: 700, fontSize: '12px', letterSpacing: '0.04em' }}>
               {shipment.trackingNumber}
             </div>
             <div style={{ color: isDark ? '#6a8090' : '#6a7a88', fontSize: '11px', marginTop: '1px' }}>
@@ -177,7 +177,7 @@ function EditModal({ shipment, isDark, tc, onSave, onClose }: EditModalProps) {
               onClick={() => onSave(draft)}
               style={{
                 flex: 2, padding: '9px',
-                background: '#BAAB48', color: '#1a1a1a',
+                background: tc.accent, color: isDark ? '#0B2B26' : '#DAF1DE',
                 border: 'none', borderRadius: '8px', cursor: 'pointer',
                 fontWeight: 600, fontSize: '12px',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
@@ -226,7 +226,7 @@ export function Dashboard() {
 
   const kpiData = [
     { label: 'Active', value: '127', icon: Package, trend: '+12%', color: 'text-blue-400' },
-    { label: 'In Transit', value: '84', icon: TrendingUp, trend: '+8%', color: 'text-[#BAAB48]' },
+    { label: 'In Transit', value: '84', icon: TrendingUp, trend: '+8%', color: '' },
     { label: 'Pending Auth', value: '23', icon: Clock, trend: '-5%', color: 'text-orange-400' },
     { label: 'Delivered', value: '456', icon: CheckCircle, trend: '+18%', color: 'text-green-400' },
     { label: 'Outstanding', value: '$12.4M', icon: DollarSign, trend: '+3%', color: 'text-red-400' },
@@ -237,7 +237,7 @@ export function Dashboard() {
       case 'In Transit': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
       case 'Delivered': return 'bg-green-500/20 text-green-400 border-green-500/30';
       case 'Pending Authorization': return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
-      case 'Active': return 'bg-[#BAAB48]/20 text-[#BAAB48] border-[#BAAB48]/30';
+      case 'Active': return '';
     }
   };
 
@@ -277,7 +277,7 @@ export function Dashboard() {
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               placeholder="Search tracking number..."
-              className={`w-full border rounded-lg pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:border-[#BAAB48] focus:ring-1 focus:ring-[#BAAB48] ${tc.inputBg}`}
+              className={`w-full border rounded-lg pl-9 pr-4 py-2.5 text-sm focus:outline-none ${tc.inputBg}`}
             />
           </form>
         </div>
@@ -301,35 +301,11 @@ export function Dashboard() {
         {/* World Map */}
         <div className={`${tc.cardBg} border ${tc.border} rounded-lg p-4 mb-6`}>
           <div className="flex items-center gap-2 mb-3">
-            <Globe className="w-4 h-4 text-[#BAAB48]" />
+            <Globe className="w-4 h-4" style={{ color: tc.accent }} />
             <h2 style={{ fontSize: '15px', fontWeight: 600 }}>Global Shipment Tracker</h2>
             <span className={`ml-auto text-xs ${tc.subtext}`}>5 routes · filter by status</span>
           </div>
           <WorldMap />
-        </div>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-          <button
-            onClick={() => navigate('/tracking/MLCA-2026-001847')}
-            className="bg-[#BAAB48] hover:bg-[#a89940] text-[#1a1a1a] rounded-lg p-5 flex items-center justify-between transition-colors"
-          >
-            <div className="text-left">
-              <div style={{ fontSize: '15px', fontWeight: 600 }} className="mb-0.5">Track Shipment</div>
-              <div className="text-xs opacity-80">View real-time tracking and milestones</div>
-            </div>
-            <ArrowRight className="w-5 h-5 flex-shrink-0" />
-          </button>
-          <button
-            onClick={() => navigate('/accounts-receivable')}
-            className={`${tc.cardBg} border ${tc.border} rounded-lg p-5 flex items-center justify-between transition-colors ${tc.hoverBg}`}
-          >
-            <div className="text-left">
-              <div style={{ fontSize: '15px', fontWeight: 600 }} className="mb-0.5">Financial Dashboard</div>
-              <div className={`text-xs ${tc.subtext}`}>Manage invoices and payments</div>
-            </div>
-            <ArrowRight className={`w-5 h-5 flex-shrink-0 ${tc.subtext}`} />
-          </button>
         </div>
 
         {/* Recent Shipments */}
@@ -356,7 +332,7 @@ export function Dashboard() {
                     <tr key={s.id} className={`border-b ${tc.border} ${tc.hoverBg} transition-colors`}>
                       {/* Tracking Number */}
                       <td className="px-4 py-3.5">
-                        <code className="text-[#BAAB48] text-sm">{s.trackingNumber}</code>
+                        <code className="text-sm" style={{ color: tc.accent }}>{s.trackingNumber}</code>
                       </td>
                       {/* Client */}
                       <td className="px-4 py-3.5 text-sm" style={{ whiteSpace: 'nowrap' }}>{s.client}</td>
@@ -429,7 +405,7 @@ export function Dashboard() {
                 <div key={s.id} className="p-4">
                   <div className="flex items-start justify-between mb-2.5">
                     <div>
-                      <code className="text-[#BAAB48] text-sm">{s.trackingNumber}</code>
+                      <code className="text-sm" style={{ color: tc.accent }}>{s.trackingNumber}</code>
                       <div className="text-sm mt-0.5" style={{ fontWeight: 500 }}>{s.client}</div>
                     </div>
                     <div className="flex items-center gap-2">
