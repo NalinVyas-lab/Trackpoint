@@ -40,43 +40,36 @@ export function useTC() {
   const { isDark } = useTheme();
   return {
     isDark,
-    // accent hex values for inline styles
-    accent: isDark ? '#DAF1DE' : '#0B2B26',
-    accentMuted: isDark ? 'rgba(218,241,222,0.15)' : 'rgba(11,43,38,0.12)',
-    accentFaint: isDark ? 'rgba(218,241,222,0.07)' : 'rgba(11,43,38,0.06)',
-    accentBorder: isDark ? 'rgba(218,241,222,0.25)' : 'rgba(11,43,38,0.22)',
+    accent: '#BAAB48',
+    accentMuted: 'rgba(186,171,72,0.15)',
+    accentFaint: 'rgba(186,171,72,0.07)',
+    accentBorder: 'rgba(186,171,72,0.3)',
 
-    pageBg: isDark
-      ? 'bg-gradient-to-br from-[#040f0d] via-[#0B2B26] to-[#0d3329]'
-      : 'bg-gradient-to-br from-[#DAF1DE] via-[#c5e8cb] to-[#b2deba]',
-    cardBg: isDark
-      ? 'bg-gradient-to-b from-[#0f2e28] to-[#0a2420]'
-      : 'bg-gradient-to-b from-white to-[#edf8ef]',
-    innerBg: isDark ? 'bg-[#0a2018]' : 'bg-[#e8f5ea]',
-    headerBg: isDark
-      ? 'bg-[#091e1a] border-[#163d36]'
-      : 'bg-[#DAF1DE] border-[#a5d8ae]',
-    tableHeaderBg: isDark ? 'bg-[#0a2018]' : 'bg-[#c8ecd0]',
-    hoverBg: isDark ? 'hover:bg-[#0f2e28]' : 'hover:bg-[#d4f0d9]',
-    border: isDark ? 'border-[#163d36]' : 'border-[#a5d8ae]',
-    divider: isDark ? 'divide-[#163d36]' : 'divide-[#a5d8ae]',
-    text: isDark ? 'text-[#DAF1DE]' : 'text-[#0B2B26]',
-    subtext: isDark ? 'text-[#6fa894]' : 'text-[#2e6b5e]',
+    pageBg: isDark ? 'bg-[#111111]' : 'bg-[#f4f5f7]',
+    cardBg: isDark ? 'bg-[#1c1c1c]' : 'bg-white',
+    innerBg: isDark ? 'bg-[#141414]' : 'bg-[#f8f9fa]',
+    headerBg: isDark ? 'bg-[#1c1c1c] border-[#2a2a2a]' : 'bg-white border-[#e8e8e8]',
+    tableHeaderBg: isDark ? 'bg-[#171717]' : 'bg-[#f8f9fa]',
+    hoverBg: isDark ? 'hover:bg-[#232323]' : 'hover:bg-[#fafafa]',
+    border: isDark ? 'border-[#2a2a2a]' : 'border-[#e8e8e8]',
+    divider: isDark ? 'divide-[#2a2a2a]' : 'divide-[#e8e8e8]',
+    text: isDark ? 'text-[#e8e8e8]' : 'text-[#111111]',
+    subtext: isDark ? 'text-[#888888]' : 'text-[#666666]',
     inputBg: isDark
-      ? 'bg-[#0a2018] border-[#163d36] text-[#DAF1DE] placeholder:text-[#3d7a6a]'
-      : 'bg-white border-[#a5d8ae] text-[#0B2B26] placeholder:text-[#7ab89c]',
+      ? 'bg-[#141414] border-[#2a2a2a] text-[#e8e8e8] placeholder:text-[#555555]'
+      : 'bg-white border-[#e0e0e0] text-[#111111] placeholder:text-[#aaaaaa]',
     tooltipStyle: isDark
-      ? { backgroundColor: '#0f2e28', border: '1px solid #163d36', borderRadius: '8px', color: '#DAF1DE' }
-      : { backgroundColor: '#ffffff', border: '1px solid #a5d8ae', borderRadius: '8px', color: '#0B2B26' },
+      ? { backgroundColor: '#1c1c1c', border: '1px solid #2a2a2a', borderRadius: '8px', color: '#e8e8e8', fontSize: '12px' }
+      : { backgroundColor: '#ffffff', border: '1px solid #e8e8e8', borderRadius: '8px', color: '#111111', fontSize: '12px' },
     navItemInactive: isDark
-      ? 'text-[#6fa894] hover:text-[#DAF1DE] hover:bg-[#163d36]'
-      : 'text-[#2e6b5e] hover:text-[#0B2B26] hover:bg-[#b8e4c4]',
+      ? 'text-[#888888] hover:text-[#e8e8e8] hover:bg-[#2a2a2a]'
+      : 'text-[#666666] hover:text-[#111111] hover:bg-[#f0f0f0]',
     secondaryBtn: isDark
-      ? 'bg-[#163d36] hover:bg-[#1d4d44] text-[#DAF1DE]'
-      : 'bg-[#b8e4c4] hover:bg-[#a5d8ae] text-[#0B2B26]',
-    mapOcean: isDark ? '#030d0b' : '#c5e8cb',
-    mapLand: isDark ? '#163d36' : '#0B2B26',
-    mapLandStroke: isDark ? '#1d4d44' : '#0a2420',
-    mapGrid: isDark ? '#DAF1DE' : '#0B2B26',
+      ? 'bg-[#2a2a2a] hover:bg-[#333333] text-[#e8e8e8]'
+      : 'bg-[#f0f0f0] hover:bg-[#e8e8e8] text-[#111111]',
+    mapOcean: isDark ? '#0a0f1a' : '#dbeafe',
+    mapLand: isDark ? '#1c2333' : '#d1d5db',
+    mapLandStroke: isDark ? '#2a3040' : '#b0b7c0',
+    mapGrid: '#BAAB48',
   };
 }

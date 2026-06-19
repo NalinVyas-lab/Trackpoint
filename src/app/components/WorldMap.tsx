@@ -6,7 +6,7 @@ import {
   Marker,
   useMapContext,
 } from 'react-simple-maps';
-import { Plane, Ship, Truck, MapPin, Clock, Navigation, X, Pencil, Check } from 'lucide-react';
+import { Plane, Ship, Truck, MapPin, Clock, Navigation } from 'lucide-react';
 import { useTC } from '../contexts/ThemeContext';
 
 type StatusFilter = 'All' | 'In Transit' | 'Delivered' | 'Pending Authorization' | 'Delayed' | 'High Priority';
@@ -60,6 +60,108 @@ const routes: ShipmentRoute[] = [
     fromCoords: [-74.0, 40.7], toCoords: [151.2, -33.9],
     transportMode: 'sea', lastGpsDate: '2026-06-07', lastGpsTime: '22:08 UTC',
   },
+  {
+    id: '6', trackingNumber: 'MLCA-2026-001841', origin: 'London, UK', destination: 'Mumbai, India',
+    status: 'In Transit', eta: '2026-06-09', client: 'Graff Diamonds',
+    fromCoords: [-0.1, 51.5], toCoords: [72.9, 19.1],
+    transportMode: 'air', lastGpsDate: '2026-06-07', lastGpsTime: '11:20 UTC',
+  },
+  {
+    id: '7', trackingNumber: 'MLCA-2026-001840', origin: 'Shanghai, China', destination: 'Los Angeles, USA',
+    status: 'In Transit', eta: '2026-06-15', client: 'Goldman Sachs',
+    fromCoords: [121.5, 31.2], toCoords: [-118.2, 34.1],
+    transportMode: 'sea', lastGpsDate: '2026-06-07', lastGpsTime: '08:00 UTC',
+  },
+  {
+    id: '8', trackingNumber: 'MLCA-2026-001839', origin: 'Frankfurt, Germany', destination: 'São Paulo, Brazil',
+    status: 'High Priority', eta: '2026-06-08', client: 'Deutsche Bank',
+    fromCoords: [8.7, 50.1], toCoords: [-46.6, -23.6],
+    transportMode: 'air', lastGpsDate: '2026-06-07', lastGpsTime: '16:45 UTC',
+  },
+  {
+    id: '9', trackingNumber: 'MLCA-2026-001838', origin: 'Singapore', destination: 'Sydney, Australia',
+    status: 'Delivered', eta: '2026-06-05', client: 'Macquarie Group',
+    fromCoords: [103.8, 1.3], toCoords: [151.2, -33.9],
+    transportMode: 'sea', lastGpsDate: '2026-06-05', lastGpsTime: '10:00 UTC',
+  },
+  {
+    id: '10', trackingNumber: 'MLCA-2026-001837', origin: 'Toronto, Canada', destination: 'London, UK',
+    status: 'In Transit', eta: '2026-06-10', client: 'Scotiabank',
+    fromCoords: [-79.4, 43.7], toCoords: [-0.1, 51.5],
+    transportMode: 'air', lastGpsDate: '2026-06-07', lastGpsTime: '20:00 UTC',
+  },
+  {
+    id: '11', trackingNumber: 'MLCA-2026-001836', origin: 'Mumbai, India', destination: 'Dubai, UAE',
+    status: 'Pending Authorization', eta: '2026-06-12', client: 'Tata Group',
+    fromCoords: [72.9, 19.1], toCoords: [55.3, 25.2],
+    transportMode: 'road', lastGpsDate: '2026-06-07', lastGpsTime: '07:30 UTC',
+  },
+  {
+    id: '12', trackingNumber: 'MLCA-2026-001835', origin: 'Tokyo, Japan', destination: 'Seoul, South Korea',
+    status: 'In Transit', eta: '2026-06-08', client: 'Mitsubishi UFJ',
+    fromCoords: [139.7, 35.7], toCoords: [126.9, 37.6],
+    transportMode: 'air', lastGpsDate: '2026-06-07', lastGpsTime: '13:10 UTC',
+  },
+  {
+    id: '13', trackingNumber: 'MLCA-2026-001834', origin: 'Amsterdam, Netherlands', destination: 'New York, USA',
+    status: 'In Transit', eta: '2026-06-09', client: 'ING Group',
+    fromCoords: [4.9, 52.4], toCoords: [-74.0, 40.7],
+    transportMode: 'air', lastGpsDate: '2026-06-07', lastGpsTime: '18:55 UTC',
+  },
+  {
+    id: '14', trackingNumber: 'MLCA-2026-001833', origin: 'Cape Town, South Africa', destination: 'London, UK',
+    status: 'Delayed', eta: '2026-06-18', client: 'Anglo American',
+    fromCoords: [18.4, -33.9], toCoords: [-0.1, 51.5],
+    transportMode: 'sea', lastGpsDate: '2026-06-07', lastGpsTime: '04:20 UTC',
+  },
+  {
+    id: '15', trackingNumber: 'MLCA-2026-001832', origin: 'Beijing, China', destination: 'Frankfurt, Germany',
+    status: 'High Priority', eta: '2026-06-08', client: 'ICBC',
+    fromCoords: [116.4, 39.9], toCoords: [8.7, 50.1],
+    transportMode: 'air', lastGpsDate: '2026-06-07', lastGpsTime: '15:30 UTC',
+  },
+  {
+    id: '16', trackingNumber: 'MLCA-2026-001831', origin: 'Houston, USA', destination: 'Mexico City, Mexico',
+    status: 'In Transit', eta: '2026-06-09', client: 'ConocoPhillips',
+    fromCoords: [-95.4, 29.8], toCoords: [-99.1, 19.4],
+    transportMode: 'road', lastGpsDate: '2026-06-07', lastGpsTime: '12:00 UTC',
+  },
+  {
+    id: '17', trackingNumber: 'MLCA-2026-001830', origin: 'Johannesburg, South Africa', destination: 'Dubai, UAE',
+    status: 'In Transit', eta: '2026-06-10', client: 'Standard Bank',
+    fromCoords: [28.0, -26.2], toCoords: [55.3, 25.2],
+    transportMode: 'air', lastGpsDate: '2026-06-07', lastGpsTime: '09:45 UTC',
+  },
+  {
+    id: '18', trackingNumber: 'MLCA-2026-001829', origin: 'Sydney, Australia', destination: 'Singapore',
+    status: 'In Transit', eta: '2026-06-08', client: 'ANZ Bank',
+    fromCoords: [151.2, -33.9], toCoords: [103.8, 1.3],
+    transportMode: 'air', lastGpsDate: '2026-06-07', lastGpsTime: '21:15 UTC',
+  },
+  {
+    id: '19', trackingNumber: 'MLCA-2026-001828', origin: 'London, UK', destination: 'Lagos, Nigeria',
+    status: 'Pending Authorization', eta: '2026-06-11', client: 'Barclays Africa',
+    fromCoords: [-0.1, 51.5], toCoords: [3.4, 6.5],
+    transportMode: 'air', lastGpsDate: '2026-06-07', lastGpsTime: '10:30 UTC',
+  },
+  {
+    id: '20', trackingNumber: 'MLCA-2026-001827', origin: 'Miami, USA', destination: 'Bogotá, Colombia',
+    status: 'In Transit', eta: '2026-06-09', client: 'BTG Pactual',
+    fromCoords: [-80.2, 25.8], toCoords: [-74.1, 4.7],
+    transportMode: 'air', lastGpsDate: '2026-06-07', lastGpsTime: '17:20 UTC',
+  },
+  {
+    id: '21', trackingNumber: 'MLCA-2026-001826', origin: 'Istanbul, Turkey', destination: 'Singapore',
+    status: 'In Transit', eta: '2026-06-14', client: 'Koç Holding',
+    fromCoords: [29.0, 41.0], toCoords: [103.8, 1.3],
+    transportMode: 'sea', lastGpsDate: '2026-06-07', lastGpsTime: '05:55 UTC',
+  },
+  {
+    id: '22', trackingNumber: 'MLCA-2026-001825', origin: 'Zurich, Switzerland', destination: 'Chicago, USA',
+    status: 'High Priority', eta: '2026-06-08', client: 'Credit Suisse',
+    fromCoords: [8.5, 47.4], toCoords: [-87.6, 41.9],
+    transportMode: 'air', lastGpsDate: '2026-06-07', lastGpsTime: '19:00 UTC',
+  },
 ];
 
 const cities = [
@@ -72,6 +174,24 @@ const cities = [
   { coords: [2.3, 48.9] as [number, number], label: 'Paris' },
   { coords: [139.7, 35.7] as [number, number], label: 'Tokyo' },
   { coords: [151.2, -33.9] as [number, number], label: 'Sydney' },
+  { coords: [72.9, 19.1] as [number, number], label: 'Mumbai' },
+  { coords: [121.5, 31.2] as [number, number], label: 'Shanghai' },
+  { coords: [-118.2, 34.1] as [number, number], label: 'Los Angeles' },
+  { coords: [8.7, 50.1] as [number, number], label: 'Frankfurt' },
+  { coords: [-46.6, -23.6] as [number, number], label: 'São Paulo' },
+  { coords: [-79.4, 43.7] as [number, number], label: 'Toronto' },
+  { coords: [126.9, 37.6] as [number, number], label: 'Seoul' },
+  { coords: [4.9, 52.4] as [number, number], label: 'Amsterdam' },
+  { coords: [18.4, -33.9] as [number, number], label: 'Cape Town' },
+  { coords: [116.4, 39.9] as [number, number], label: 'Beijing' },
+  { coords: [-95.4, 29.8] as [number, number], label: 'Houston' },
+  { coords: [-99.1, 19.4] as [number, number], label: 'Mexico City' },
+  { coords: [28.0, -26.2] as [number, number], label: 'Johannesburg' },
+  { coords: [3.4, 6.5] as [number, number], label: 'Lagos' },
+  { coords: [-80.2, 25.8] as [number, number], label: 'Miami' },
+  { coords: [-74.1, 4.7] as [number, number], label: 'Bogotá' },
+  { coords: [29.0, 41.0] as [number, number], label: 'Istanbul' },
+  { coords: [-87.6, 41.9] as [number, number], label: 'Chicago' },
 ];
 
 const STATUS_FILTERS: StatusFilter[] = ['All', 'In Transit', 'Delivered', 'Pending Authorization', 'Delayed', 'High Priority'];
@@ -107,15 +227,17 @@ function RouteLayer({
   activeFilter,
   isDark,
   accent,
-  onClickRoute,
-  selectedId,
+  onHoverRoute,
+  onLeaveRoute,
+  hoveredId,
 }: {
   routes: ShipmentRoute[];
   activeFilter: StatusFilter;
   isDark: boolean;
   accent: string;
-  onClickRoute: (r: ShipmentRoute, e: React.MouseEvent) => void;
-  selectedId: string | null;
+  onHoverRoute: (r: ShipmentRoute, e: React.MouseEvent) => void;
+  onLeaveRoute: () => void;
+  hoveredId: string | null;
 }) {
   const { projection } = useMapContext();
 
@@ -148,8 +270,7 @@ function RouteLayer({
         const mid = bezierPoint(0.5, x1, y1, cpx, cpy, x2, y2);
 
         const routeOpacity = isVisible ? 1 : 0.06;
-
-        const isSelected = selectedId === route.id;
+        const isHovered = hoveredId === route.id;
 
         return (
           <g key={route.id} opacity={routeOpacity} style={{ transition: 'opacity 0.25s ease' }}>
@@ -172,7 +293,8 @@ function RouteLayer({
                 strokeWidth="20"
                 fill="none"
                 style={{ cursor: 'pointer' }}
-                onClick={e => onClickRoute(route, e)}
+                onMouseEnter={e => onHoverRoute(route, e)}
+                onMouseLeave={onLeaveRoute}
               />
             )}
 
@@ -181,10 +303,11 @@ function RouteLayer({
               <g
                 transform={`translate(${mid.x}, ${mid.y})`}
                 style={{ cursor: 'pointer' }}
-                onClick={e => onClickRoute(route, e)}
+                onMouseEnter={e => onHoverRoute(route, e)}
+                onMouseLeave={onLeaveRoute}
               >
-                {/* Selected ring */}
-                {isSelected && (
+                {/* Hovered ring */}
+                {isHovered && (
                   <circle r="22" fill="none" stroke={accent} strokeWidth="2" opacity="0.5" />
                 )}
                 {/* Outer pulse ring for active routes */}
@@ -196,9 +319,9 @@ function RouteLayer({
                 {/* Badge fill */}
                 <circle
                   r="15"
-                  fill={isSelected ? (isDark ? '#1e2a1a' : '#fffbea') : (isDark ? '#161b22' : '#ffffff')}
-                  stroke={isSelected ? accent : isDelayed ? '#ef4444' : accent}
-                  strokeWidth={isSelected ? 2.5 : 1.8}
+                  fill={isHovered ? (isDark ? '#1e2a1a' : '#fffbea') : (isDark ? '#161b22' : '#ffffff')}
+                  stroke={isHovered ? accent : isDelayed ? '#ef4444' : accent}
+                  strokeWidth={isHovered ? 2.5 : 1.8}
                 />
                 {/* Status dot — top-right of badge */}
                 <circle
@@ -236,82 +359,30 @@ function RouteLayer({
   );
 }
 
-function inputStyle(isDark: boolean): React.CSSProperties {
-  return {
-    background: isDark ? '#111a28' : '#f5f8fc',
-    border: `1px solid ${isDark ? '#2a3e54' : '#c8d8e8'}`,
-    color: isDark ? '#c0cdd8' : '#1a2a38',
-    borderRadius: '5px',
-    padding: '2px 6px',
-    fontSize: '10.5px',
-    outline: 'none',
-    width: '100px',
-    fontWeight: 500,
-  };
-}
-
 const MIN_ZOOM = 100;
 const MAX_ZOOM = 600;
 const ZOOM_STEP = 50;
-
-interface EditDraft {
-  lastGpsDate: string;
-  lastGpsTime: string;
-  origin: string;
-  destination: string;
-  eta: string;
-  status: string;
-}
 
 export function WorldMap() {
   const tc = useTC();
   const GOLD = tc.accent;
   const [activeFilter, setActiveFilter] = useState<StatusFilter>('All');
-  const [selected, setSelected] = useState<ShipmentRoute | null>(null);
-  const [cardPos, setCardPos] = useState({ x: 0, y: 0 });
-  const [isEditing, setIsEditing] = useState(false);
-  const [draft, setDraft] = useState<EditDraft | null>(null);
-  const [overrides, setOverrides] = useState<Record<string, Partial<EditDraft>>>({});
+  const [hoveredRoute, setHoveredRoute] = useState<ShipmentRoute | null>(null);
+  const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(175);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const zoomIn = () => setZoom(z => Math.min(z + ZOOM_STEP, MAX_ZOOM));
   const zoomOut = () => setZoom(z => Math.max(z - ZOOM_STEP, MIN_ZOOM));
 
-  const handleIconClick = (route: ShipmentRoute, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleHoverRoute = (route: ShipmentRoute, e: React.MouseEvent) => {
     const rect = containerRef.current?.getBoundingClientRect();
-    if (rect) setCardPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-    setSelected(route);
-    setIsEditing(false);
-    setDraft(null);
+    if (rect) setHoverPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    setHoveredRoute(route);
   };
 
-  const closeCard = () => { setSelected(null); setIsEditing(false); setDraft(null); };
-
-  const startEdit = () => {
-    if (!selected) return;
-    const ov = overrides[selected.id] || {};
-    setDraft({
-      lastGpsDate: ov.lastGpsDate ?? selected.lastGpsDate,
-      lastGpsTime: ov.lastGpsTime ?? selected.lastGpsTime,
-      origin: ov.origin ?? selected.origin,
-      destination: ov.destination ?? selected.destination,
-      eta: ov.eta ?? selected.eta,
-      status: ov.status ?? selected.status,
-    });
-    setIsEditing(true);
-  };
-
-  const saveEdit = () => {
-    if (!selected || !draft) return;
-    setOverrides(prev => ({ ...prev, [selected.id]: draft }));
-    setIsEditing(false);
-    setDraft(null);
-  };
-
-  const getField = (route: ShipmentRoute, field: keyof EditDraft): string => {
-    return (overrides[route.id]?.[field] as string) ?? (route[field as keyof ShipmentRoute] as string);
+  const handleLeaveRoute = () => {
+    setHoveredRoute(null);
   };
 
   // Map colors — closer to real logistics platform (dark tile style)
@@ -319,17 +390,20 @@ export function WorldMap() {
   const landFill = tc.isDark ? '#1c2333' : '#1c2b40';
   const landHover = tc.isDark ? '#232d40' : '#243550';
   const landStroke = tc.isDark ? '#283548' : '#2a3d58';
-  const graticuleColor = tc.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.04)';
 
-  const cardLeft = Math.min(cardPos.x + 18, (containerRef.current?.offsetWidth ?? 400) - 260);
-  const cardTop = Math.max(cardPos.y - 180, 48);
+  const containerWidth = containerRef.current?.offsetWidth ?? 400;
+  const containerHeight = containerRef.current?.offsetHeight ?? 520;
+
+  const cardWidth = 252;
+  const cardHeight = 200;
+  const cardLeft = Math.min(hoverPos.x + 18, containerWidth - cardWidth - 8);
+  const cardTop = Math.max(Math.min(hoverPos.y - cardHeight / 2, containerHeight - cardHeight - 8), 8);
 
   return (
     <div
       ref={containerRef}
       className={`relative w-full rounded-xl overflow-hidden border ${tc.border}`}
       style={{ height: '520px', background: oceanBg }}
-      onClick={() => { if (selected) closeCard(); }}
     >
       {/* Status filter chips */}
       <div className="absolute top-3 left-3 z-20 flex flex-wrap gap-1.5" style={{ maxWidth: 'calc(100% - 130px)' }}>
@@ -391,12 +465,6 @@ export function WorldMap() {
           </filter>
         </defs>
 
-        {/* Subtle grid lines */}
-        {[-60, -30, 0, 30, 60].map(lat => {
-          // Simplified: just a faint horizontal line suggestion
-          return null;
-        })}
-
         {/* Countries */}
         <Geographies geography={GEO_URL}>
           {({ geographies }) =>
@@ -423,8 +491,9 @@ export function WorldMap() {
           activeFilter={activeFilter}
           isDark={tc.isDark}
           accent={GOLD}
-          onClickRoute={handleIconClick}
-          selectedId={selected?.id ?? null}
+          onHoverRoute={handleHoverRoute}
+          onLeaveRoute={handleLeaveRoute}
+          hoveredId={hoveredRoute?.id ?? null}
         />
 
         {/* City markers */}
@@ -569,105 +638,61 @@ export function WorldMap() {
         {' '}active route{routes.filter(r => activeFilter === 'All' || r.status === activeFilter).length !== 1 ? 's' : ''}
       </div>
 
-      {/* Shipment detail card — click-triggered, editable */}
-      {selected && (
+      {/* Hover tooltip card — read-only */}
+      {hoveredRoute && (
         <div
-          className="absolute z-30 rounded-xl shadow-2xl overflow-hidden"
+          className="absolute z-30 rounded-xl shadow-2xl overflow-hidden pointer-events-none"
           style={{
-            left: Math.min(cardLeft, (containerRef.current?.offsetWidth ?? 400) - 260),
-            top: Math.min(cardTop, (containerRef.current?.offsetHeight ?? 400) - 420),
-            width: '252px',
+            left: cardLeft,
+            top: cardTop,
+            width: `${cardWidth}px`,
             background: tc.isDark ? '#0d1525' : '#ffffff',
             border: `1.5px solid ${tc.isDark ? '#283548' : '#d8e2ec'}`,
             borderTop: `2px solid ${GOLD}`,
           }}
-          onClick={e => e.stopPropagation()}
         >
           {/* Header */}
           <div
             className="px-3 py-2.5 flex items-center gap-2.5"
-            style={{ background: tc.isDark ? 'rgba(186,171,72,0.07)' : 'rgba(186,171,72,0.06)', borderBottom: `1px solid ${tc.isDark ? '#1a2535' : '#eef2f6'}` }}
+            style={{
+              background: tc.isDark ? 'rgba(186,171,72,0.07)' : 'rgba(186,171,72,0.06)',
+              borderBottom: `1px solid ${tc.isDark ? '#1a2535' : '#eef2f6'}`,
+            }}
           >
             <div
               className="flex items-center justify-center rounded-lg flex-shrink-0"
               style={{ width: '30px', height: '30px', background: tc.isDark ? '#161b22' : '#f5f2e0', border: `1px solid ${GOLD}` }}
             >
-              <TransportIcon mode={selected.transportMode} size={15} color={tc.isDark ? '#d0c070' : '#8a7a20'} />
+              <TransportIcon mode={hoveredRoute.transportMode} size={15} color={tc.isDark ? '#d0c070' : '#8a7a20'} />
             </div>
             <div className="flex-1 min-w-0">
-              <div style={{ color: GOLD, fontWeight: 700, fontSize: '10.5px', letterSpacing: '0.04em' }}>
-                {selected.trackingNumber}
+              <div style={{ color: GOLD, fontWeight: 700, fontSize: '10.5px', letterSpacing: '0.04em', fontFamily: 'monospace' }}>
+                {hoveredRoute.trackingNumber}
               </div>
               <div style={{ color: tc.isDark ? '#6a8090' : '#6a7a88', fontSize: '9.5px', marginTop: '1px' }}>
-                {selected.client}
+                {hoveredRoute.client}
               </div>
             </div>
-            {/* Edit / Save button */}
-            <button
-              onClick={isEditing ? saveEdit : startEdit}
-              title={isEditing ? 'Save changes' : 'Edit shipment'}
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                width: '26px', height: '26px', borderRadius: '6px',
-                background: isEditing ? `${GOLD}22` : (tc.isDark ? '#1a2535' : '#f0f4f8'),
-                border: `1px solid ${isEditing ? GOLD : (tc.isDark ? '#283548' : '#d0dae6')}`,
-                color: isEditing ? GOLD : (tc.isDark ? '#6a8090' : '#4a6070'),
-                cursor: 'pointer', flexShrink: 0,
-              }}
-            >
-              {isEditing ? <Check size={13} /> : <Pencil size={12} />}
-            </button>
-            {/* Close button */}
-            <button
-              onClick={closeCard}
-              title="Close"
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                width: '26px', height: '26px', borderRadius: '6px',
-                background: tc.isDark ? '#1a2535' : '#f0f4f8',
-                border: `1px solid ${tc.isDark ? '#283548' : '#d0dae6'}`,
-                color: tc.isDark ? '#6a8090' : '#4a6070',
-                cursor: 'pointer', flexShrink: 0,
-              }}
-            >
-              <X size={13} />
-            </button>
           </div>
 
           {/* Body */}
-          <div className="px-3 py-3" style={{ fontSize: '11px' }}>
+          <div className="px-3 py-2.5" style={{ fontSize: '11px' }}>
 
-            {/* Status */}
+            {/* Status badge */}
             <div className="flex items-center justify-between mb-2">
               <span style={{ color: tc.isDark ? '#4a6070' : '#6a7a88' }}>Status</span>
-              {isEditing ? (
-                <select
-                  value={draft!.status}
-                  onChange={e => setDraft(d => d ? { ...d, status: e.target.value } : d)}
-                  style={{
-                    background: tc.isDark ? '#111a28' : '#f5f8fc',
-                    border: `1px solid ${GOLD}`,
-                    color: tc.isDark ? '#c0cdd8' : '#1a2a38',
-                    borderRadius: '5px', padding: '2px 5px', fontSize: '10px', outline: 'none',
-                  }}
-                >
-                  {['In Transit', 'Delivered', 'Pending Authorization', 'Delayed', 'High Priority'].map(s => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-              ) : (
-                <span
-                  className="px-2 py-0.5 rounded-full"
-                  style={{
-                    background: `${getStatusColor(getField(selected, 'status'))}18`,
-                    border: `1px solid ${getStatusColor(getField(selected, 'status'))}40`,
-                    color: getStatusColor(getField(selected, 'status')),
-                    fontSize: '9px', fontWeight: 600,
-                  }}
-                >
-                  {getField(selected, 'status')}
-                </span>
-              )}
+              <span
+                className="px-2 py-0.5 rounded-full"
+                style={{
+                  background: `${getStatusColor(hoveredRoute.status)}18`,
+                  border: `1px solid ${getStatusColor(hoveredRoute.status)}40`,
+                  color: getStatusColor(hoveredRoute.status),
+                  fontSize: '9px',
+                  fontWeight: 600,
+                }}
+              >
+                {hoveredRoute.status}
+              </span>
             </div>
 
             {/* GPS Date */}
@@ -675,100 +700,57 @@ export function WorldMap() {
               <span className="flex items-center gap-1" style={{ color: tc.isDark ? '#4a6070' : '#6a7a88' }}>
                 <Clock size={9} /> Last GPS Date
               </span>
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={draft!.lastGpsDate}
-                  onChange={e => setDraft(d => d ? { ...d, lastGpsDate: e.target.value } : d)}
-                  style={inputStyle(tc.isDark)}
-                />
-              ) : (
-                <span style={{ color: tc.isDark ? '#c0cdd8' : '#1a2a38', fontWeight: 500 }}>{getField(selected, 'lastGpsDate')}</span>
-              )}
+              <span style={{ color: tc.isDark ? '#c0cdd8' : '#1a2a38', fontWeight: 500 }}>
+                {hoveredRoute.lastGpsDate}
+              </span>
             </div>
 
             {/* GPS Time */}
-            <div className="flex items-center justify-between mb-2.5">
+            <div className="flex items-center justify-between mb-2">
               <span style={{ color: tc.isDark ? '#4a6070' : '#6a7a88', paddingLeft: '13px' }}>Time</span>
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={draft!.lastGpsTime}
-                  onChange={e => setDraft(d => d ? { ...d, lastGpsTime: e.target.value } : d)}
-                  style={inputStyle(tc.isDark)}
-                />
-              ) : (
-                <span style={{ color: tc.isDark ? '#c0cdd8' : '#1a2a38', fontWeight: 500 }}>{getField(selected, 'lastGpsTime')}</span>
-              )}
+              <span style={{ color: tc.isDark ? '#c0cdd8' : '#1a2a38', fontWeight: 500 }}>
+                {hoveredRoute.lastGpsTime}
+              </span>
             </div>
 
-            <div style={{ height: '1px', background: tc.isDark ? '#1a2535' : '#eef2f6', marginBottom: '10px' }} />
+            <div style={{ height: '1px', background: tc.isDark ? '#1a2535' : '#eef2f6', marginBottom: '8px' }} />
 
-            {/* Origin */}
-            <div className="flex items-start justify-between gap-2 mb-2">
+            {/* Origin → Destination */}
+            <div className="flex items-start justify-between gap-2 mb-1.5">
               <span className="flex items-center gap-1 flex-shrink-0" style={{ color: tc.isDark ? '#4a6070' : '#6a7a88' }}>
                 <MapPin size={9} /> Origin
               </span>
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={draft!.origin}
-                  onChange={e => setDraft(d => d ? { ...d, origin: e.target.value } : d)}
-                  style={{ ...inputStyle(tc.isDark), textAlign: 'right', maxWidth: '130px' }}
-                />
-              ) : (
-                <span style={{ color: tc.isDark ? '#c0cdd8' : '#1a2a38', fontWeight: 500, textAlign: 'right' }}>{getField(selected, 'origin')}</span>
-              )}
+              <span style={{ color: tc.isDark ? '#c0cdd8' : '#1a2a38', fontWeight: 500, textAlign: 'right' }}>
+                {hoveredRoute.origin}
+              </span>
             </div>
-
-            {/* Destination */}
-            <div className="flex items-start justify-between gap-2 mb-3">
+            <div className="flex items-start justify-between gap-2 mb-2">
               <span className="flex items-center gap-1 flex-shrink-0" style={{ color: tc.isDark ? '#4a6070' : '#6a7a88' }}>
                 <Navigation size={9} /> Destination
               </span>
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={draft!.destination}
-                  onChange={e => setDraft(d => d ? { ...d, destination: e.target.value } : d)}
-                  style={{ ...inputStyle(tc.isDark), textAlign: 'right', maxWidth: '130px' }}
-                />
-              ) : (
-                <span style={{ color: tc.isDark ? '#c0cdd8' : '#1a2a38', fontWeight: 500, textAlign: 'right' }}>{getField(selected, 'destination')}</span>
-              )}
+              <span style={{ color: tc.isDark ? '#c0cdd8' : '#1a2a38', fontWeight: 500, textAlign: 'right' }}>
+                {hoveredRoute.destination}
+              </span>
             </div>
 
-            {/* ETA */}
-            <div
-              className="flex items-center justify-between rounded-lg px-3 py-2"
-              style={{ background: tc.isDark ? '#111a28' : '#f8f6ee', border: `1px solid ${tc.isDark ? '#1f2d40' : '#e8e0c0'}` }}
-            >
-              <span style={{ color: tc.isDark ? '#4a6070' : '#6a7a88' }}>Estimated Arrival</span>
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={draft!.eta}
-                  onChange={e => setDraft(d => d ? { ...d, eta: e.target.value } : d)}
-                  style={{ ...inputStyle(tc.isDark), color: GOLD, fontWeight: 700, maxWidth: '90px' }}
-                />
-              ) : (
-                <span style={{ color: GOLD, fontWeight: 700 }}>{getField(selected, 'eta')}</span>
-              )}
-            </div>
-
-            {isEditing && (
-              <button
-                onClick={saveEdit}
+            {/* Transport mode badge */}
+            <div className="flex items-center justify-between">
+              <span style={{ color: tc.isDark ? '#4a6070' : '#6a7a88' }}>Mode</span>
+              <span
+                className="flex items-center gap-1 px-2 py-0.5 rounded-full"
                 style={{
-                  marginTop: '10px', width: '100%', padding: '7px',
-                  background: GOLD, color: '#1a1a1a', borderRadius: '7px',
-                  border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '11px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
+                  background: tc.isDark ? '#161b22' : '#f5f2e0',
+                  border: `1px solid ${GOLD}40`,
+                  color: tc.isDark ? '#d0c070' : '#8a7a20',
+                  fontSize: '9px',
+                  fontWeight: 600,
+                  textTransform: 'capitalize',
                 }}
               >
-                <Check size={12} /> Save Changes
-              </button>
-            )}
+                <TransportIcon mode={hoveredRoute.transportMode} size={9} color={tc.isDark ? '#d0c070' : '#8a7a20'} />
+                {hoveredRoute.transportMode === 'air' ? 'Air' : hoveredRoute.transportMode === 'sea' ? 'Sea' : 'Road'}
+              </span>
+            </div>
           </div>
         </div>
       )}
