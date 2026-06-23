@@ -17,6 +17,9 @@ const INVOICE_SERVICE_ID = 'service_n9xmnah';
 const INVOICE_TEMPLATE_ID = 'template_c3zcjra';
 const INVOICE_PUBLIC_KEY = 'BVLIOYRpNq885gOul';
 
+const generateId = () =>
+  Date.now().toString() + Math.random().toString(36).substring(2, 9);
+
 interface Document {
   id: string;
   name: string;
@@ -415,7 +418,7 @@ export function InvoicePackage() {
     ) => {
     const files = Array.from(e.target.files ?? []);
     const newDocs: Document[] = files.map((f, i) => ({
-      id: crypto.randomUUID(),
+      id: generateId(),
       name: f.name.replace(/\.[^.]+$/, ''),
       category: 'Invoice',
       size: `${(f.size / 1024 / 1024).toFixed(1)} MB`,
@@ -473,7 +476,7 @@ export function InvoicePackage() {
 ) => {
 
   const doc: Document = {
-    id: crypto.randomUUID(),
+    id: generateId(),
     name: `Custom Invoice - ${invoiceData.invoiceNumber}`,
     category: 'Invoice',
     size: '0.4 MB',
