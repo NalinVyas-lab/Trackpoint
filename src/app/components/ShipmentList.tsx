@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Search, Package, ChevronRight, Plane, Ship, Truck, MapPin, Clock } from 'lucide-react';
+import { Search, Package, ChevronRight, Plane, Ship, Truck, RefreshCw, CheckCircle } from 'lucide-react';
 import { useTC } from '../contexts/ThemeContext';
 import { NavBar } from './NavBar';
 
@@ -53,6 +53,14 @@ export function ShipmentList() {
   const tc = useTC();
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<ShipmentStatus | 'All'>('All');
+  const [syncing, setSyncing] = useState(false);
+  const [syncDone, setSyncDone] = useState(false);
+
+  const handleSync = () => {
+    setSyncing(true);
+    setSyncDone(false);
+    setTimeout(() => { setSyncing(false); setSyncDone(true); setTimeout(() => setSyncDone(false), 2500); }, 1400);
+  };
 
   const statuses: (ShipmentStatus | 'All')[] = ['All', 'In Transit', 'Pending Authorization', 'High Priority', 'Delayed', 'Delivered', 'Active'];
 
@@ -79,8 +87,27 @@ export function ShipmentList() {
             <h1 style={{ fontSize: '20px', fontWeight: 600 }} className="mb-1">Shipment Tracking</h1>
             <p className={`text-sm ${tc.subtext}`}>{shipments.length} active shipments · click any row to view full tracking details</p>
           </div>
+          {/* Right: sync button + search */}
+          <div className="flex items-center gap-3 w-full md:w-auto">
+          <button
+            onClick={handleSync}
+            disabled={syncing}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all flex-shrink-0"
+            style={{
+              background: syncDone ? 'rgba(34,197,94,0.15)' : `${tc.isDark ? '#BAAB48' : '#BAAB48'}`,
+              color: syncDone ? '#22c55e' : '#111111',
+              border: syncDone ? '1px solid rgba(34,197,94,0.35)' : 'none',
+              opacity: syncing ? 0.7 : 1,
+              cursor: syncing ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {syncDone
+              ? <><CheckCircle size={14} /> Updated</>
+              : <><RefreshCw size={14} className={syncing ? 'animate-spin' : ''} /> Update Shipment Status</>
+            }
+          </button>
           {/* Search */}
-          <div className="relative w-full md:w-80">
+          <div className="relative w-full md:w-72">
             <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${tc.isDark ? 'text-[#4a6070]' : 'text-[#aaa]'}`} />
             <input
               type="text"
@@ -89,6 +116,7 @@ export function ShipmentList() {
               placeholder="Search tracking #, client, location…"
               className={`w-full border rounded-lg pl-9 pr-4 py-2.5 text-sm focus:outline-none ${tc.inputBg}`}
             />
+          </div>
           </div>
         </div>
 

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   AlertCircle, TrendingUp, TrendingDown, Shield,
   Package, AlertTriangle, Truck, DollarSign,
@@ -14,21 +15,37 @@ import { NavBar } from './NavBar';
 const GOLD = '#BAAB48';
 
 
-const agingData = [
-  { bucket: 'Current',   amount: 4.15, fill: '#22c55e' },
-  { bucket: '1-30 Days', amount: 2.14, fill: '#f59e0b' },
-  { bucket: '31-60 Days',amount: 3.15, fill: '#f97316' },
-  { bucket: '61-90 Days',amount: 2.88, fill: '#ef4444' },
-  { bucket: '90+ Days',  amount: 0.64, fill: '#dc2626' },
-];
 
-const collectionData = [
+const collectionDataMonthly = [
   { month: 'Jan', collected: 8.5, recovered: 1.8 },
   { month: 'Feb', collected: 7.8, recovered: 2.1 },
   { month: 'Mar', collected: 9.2, recovered: 2.4 },
   { month: 'Apr', collected: 8.9, recovered: 2.0 },
   { month: 'May', collected: 9.6, recovered: 1.6 },
   { month: 'Jun', collected: 5.4, recovered: 0.9 },
+];
+
+const collectionDataQuarterly = [
+  { month: 'Q1 2026', collected: 25.5, recovered: 6.3 },
+  { month: 'Q2 2026', collected: 23.9, recovered: 4.5 },
+  { month: 'Q3 2025', collected: 31.2, recovered: 7.8 },
+  { month: 'Q4 2025', collected: 28.6, recovered: 6.1 },
+];
+
+const agingDataMonthly = [
+  { bucket: 'Current',    amount: 4.15, fill: '#22c55e' },
+  { bucket: '1-30 Days',  amount: 2.14, fill: '#f59e0b' },
+  { bucket: '31-60 Days', amount: 3.15, fill: '#f97316' },
+  { bucket: '61-90 Days', amount: 2.88, fill: '#ef4444' },
+  { bucket: '90+ Days',   amount: 0.64, fill: '#dc2626' },
+];
+
+const agingDataQuarterly = [
+  { bucket: 'Current',    amount: 14.2, fill: '#22c55e' },
+  { bucket: '1-30 Days',  amount: 8.6,  fill: '#f59e0b' },
+  { bucket: '31-60 Days', amount: 11.4, fill: '#f97316' },
+  { bucket: '61-90 Days', amount: 9.3,  fill: '#ef4444' },
+  { bucket: '90+ Days',   amount: 3.1,  fill: '#dc2626' },
 ];
 
 // ─── KPI card definitions ─────────────────────────────────────────────────────
@@ -197,6 +214,11 @@ function KpiCard({ kpi }: { kpi: typeof kpis[0] }) {
 // ─── main component ───────────────────────────────────────────────────────────
 export function AccountsReceivable() {
   const tc = useTC();
+  const [period, setPeriod] = useState<'monthly' | 'quarterly'>('monthly');
+
+  const agingData = period === 'monthly' ? agingDataMonthly : agingDataQuarterly;
+  const collectionData = period === 'monthly' ? collectionDataMonthly : collectionDataQuarterly;
+  const agingTotal = agingData.reduce((s, d) => s + d.amount, 0).toFixed(2);
 
   const chartBg  = tc.isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)';
   const gridLine = tc.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.07)';
@@ -215,11 +237,33 @@ export function AccountsReceivable() {
 
       {/* ── Page header ─────────────────────────────────────── */}
       <div className={`${tc.headerBg} border-b px-4 md:px-8 py-5`}>
-        <div>
-          <h1 style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-0.01em' }} className="mb-0.5">
-            Financial Dashboard
-          </h1>
-          <p className={`text-sm ${tc.subtext}`}>Executive overview · Last updated Jun 17, 2026</p>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-0.01em' }} className="mb-0.5">
+              Financial Dashboard
+            </h1>
+            <p className={`text-sm ${tc.subtext}`}>Executive overview · Last updated Jun 17, 2026</p>
+          </div>
+          {/* Period toggle */}
+          <div
+            className="flex items-center rounded-xl p-1 flex-shrink-0"
+            style={{ background: tc.isDark ? '#141414' : '#f0f0f0', border: `1px solid ${tc.isDark ? '#2a2a2a' : '#e0e0e0'}` }}
+          >
+            {(['monthly', 'quarterly'] as const).map(p => (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className="px-4 py-1.5 rounded-lg text-sm font-semibold transition-all capitalize"
+                style={{
+                  background: period === p ? '#BAAB48' : 'transparent',
+                  color: period === p ? '#111111' : (tc.isDark ? '#888888' : '#666666'),
+                  boxShadow: period === p ? '0 1px 4px rgba(0,0,0,0.15)' : 'none',
+                }}
+              >
+                {p.charAt(0).toUpperCase() + p.slice(1)}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -257,7 +301,7 @@ export function AccountsReceivable() {
                 className="px-3 py-1.5 rounded-full text-xs font-semibold"
                 style={{ background: `${GOLD}18`, color: GOLD, border: `1px solid ${GOLD}30` }}
               >
-                $12.96M Total
+                ${agingTotal}M Total
               </div>
             </div>
 
