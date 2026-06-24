@@ -430,7 +430,7 @@ export function WorldMap() {
                 whiteSpace: 'nowrap',
               }}
             >
-              {f === 'All' ? 'All Routes' : f}
+              {f === 'All' ? 'All Routes' : f === 'Delivered' ? 'Delivered in last 7 days' : f}
               {f !== 'All' && count > 0 && (
                 <span style={{ marginLeft: '5px', opacity: 0.6, fontSize: '9px' }}>{count}</span>
               )}

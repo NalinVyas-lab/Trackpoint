@@ -103,7 +103,7 @@ export function ShipmentList() {
           >
             {syncDone
               ? <><CheckCircle size={14} /> Updated</>
-              : <><RefreshCw size={14} className={syncing ? 'animate-spin' : ''} /> Update Shipment Status</>
+              : <><RefreshCw size={14} className={syncing ? 'animate-spin' : ''} /> Sync Shipments With ERP</>
             }
           </button>
           {/* Search */}

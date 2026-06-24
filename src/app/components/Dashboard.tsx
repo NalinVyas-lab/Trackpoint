@@ -23,6 +23,8 @@ interface Shipment {
   currentLocation: string;
   transportMode: TransportMode;
   lastRecordTime: string;
+  latitude: string;
+  longitude: string;
 }
 
 const initialShipments: Shipment[] = [
@@ -30,26 +32,31 @@ const initialShipments: Shipment[] = [
     id: '1', trackingNumber: 'MLCA-2026-001847', origin: 'London, UK', destination: 'New York, USA',
     value: '$2,450,000', status: 'In Transit', eta: '2026-06-08', client: 'Tiffany & Co.',
     currentLocation: 'Mid-Atlantic Ocean', transportMode: 'air', lastRecordTime: '2026-06-07 14:32 UTC',
+    latitude: '45.2300', longitude: '-35.7800',
   },
   {
     id: '2', trackingNumber: 'MLCA-2026-001846', origin: 'Dubai, UAE', destination: 'Hong Kong',
     value: '$1,850,000', status: 'Pending Authorization', eta: '2026-06-10', client: 'Cartier International',
     currentLocation: 'Dubai, UAE', transportMode: 'air', lastRecordTime: '2026-06-07 09:14 UTC',
+    latitude: '25.2048', longitude: '55.2708',
   },
   {
     id: '3', trackingNumber: 'MLCA-2026-001845', origin: 'Zurich, Switzerland', destination: 'Singapore',
     value: '$3,200,000', status: 'Active', eta: '2026-06-06', client: 'UBS AG',
     currentLocation: 'Indian Ocean', transportMode: 'sea', lastRecordTime: '2026-06-07 06:55 UTC',
+    latitude: '5.1500', longitude: '72.4800',
   },
   {
     id: '4', trackingNumber: 'MLCA-2026-001844', origin: 'Paris, France', destination: 'Tokyo, Japan',
     value: '$980,000', status: 'Delivered', eta: '2026-06-03', client: 'Van Cleef & Arpels',
     currentLocation: 'Tokyo, Japan', transportMode: 'air', lastRecordTime: '2026-06-03 18:41 UTC',
+    latitude: '35.6762', longitude: '139.6503',
   },
   {
     id: '5', trackingNumber: 'MLCA-2026-001843', origin: 'New York, USA', destination: 'Sydney, Australia',
     value: '$1,450,000', status: 'In Transit', eta: '2026-06-09', client: 'Royal Bank of Canada',
     currentLocation: 'Pacific Ocean', transportMode: 'sea', lastRecordTime: '2026-06-07 22:08 UTC',
+    latitude: '-15.4200', longitude: '-162.3100',
   },
 ];
 
@@ -159,6 +166,10 @@ function EditModal({ shipment, isDark, tc, onSave, onClose }: EditModalProps) {
           {field('Current Location', 'currentLocation')}
           {field('Transport Mode', 'transportMode', 'select', ['air', 'sea', 'road'])}
           {field('Last Record Time', 'lastRecordTime')}
+          <div className="grid grid-cols-2 gap-x-3">
+            <div>{field('Latitude', 'latitude')}</div>
+            <div>{field('Longitude', 'longitude')}</div>
+          </div>
 
           <div className="flex gap-2 mt-4">
             <button

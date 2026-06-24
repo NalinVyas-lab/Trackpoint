@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router';
-import { Search, Eye, Download, CheckCircle, Bell, X, Upload, MoreHorizontal, Package, AlertCircle, RefreshCw, Database } from 'lucide-react';
+import { Search, Eye, Download, CheckCircle, Bell, X, Upload, MoreHorizontal, Package, AlertCircle, RefreshCw, Server } from 'lucide-react';
 import { useTC } from '../contexts/ThemeContext';
 import { NavBar } from './NavBar';
 
@@ -398,7 +398,7 @@ export function TrackInvoice() {
           >
             {erpSyncDone
               ? <><CheckCircle size={14} /> Synced</>
-              : <>{erpSyncing ? <RefreshCw size={14} className="animate-spin" /> : <Database size={14} />} Sync Invoices From ERP</>
+              : <>{erpSyncing ? <RefreshCw size={14} className="animate-spin" /> : <Server size={14} />} Sync Invoices With ERP</>
             }
           </button>
         </div>
