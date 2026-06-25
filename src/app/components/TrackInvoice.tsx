@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router';
-import { Search, Eye, Download, CheckCircle, Bell, X, Upload, MoreHorizontal, Package, AlertCircle } from 'lucide-react';
+import { Search, Eye, Download, CheckCircle, Bell, X, Upload, MoreHorizontal, Package, AlertCircle, RefreshCw, Server, Layers, Building2, ChevronDown } from 'lucide-react';
 import { useTC } from '../contexts/ThemeContext';
 import { NavBar } from './NavBar';
+import { FilterPanel, ActiveFilterChips, EMPTY_FILTERS, countActiveFilters, isDateInRange } from './FilterPanel';
+import type { FilterState } from './FilterPanel';
 
 type InvoiceStatus = 'Draft' | 'Approved' | 'Processed' | 'Reminded' | 'Refused' | 'Paid' | 'Partially Paid' | 'Overdue';
 
@@ -30,27 +32,51 @@ interface OutstandingInvoice {
 }
 
 const mockInvoices: Invoice[] = [
+  // Tiffany & Co. — 2 invoices
   { id: '1',  invoiceNo: 'INV-2026-0847', client: 'Tiffany & Co.',        shipmentId: 'MLCA-2026-001847', amount: '$245,650.00',  dueDate: '2026-06-18', status: 'Processed',      numFiles: 7  },
+  { id: '13', invoiceNo: 'INV-2026-0830', client: 'Tiffany & Co.',        shipmentId: 'MLCA-2026-001830', amount: '$182,400.00',  dueDate: '2026-06-28', status: 'Approved',        numFiles: 5  },
+  // Cartier International — 2 invoices
   { id: '2',  invoiceNo: 'INV-2026-0846', client: 'Cartier International', shipmentId: 'MLCA-2026-001846', amount: '$187,200.00',  dueDate: '2026-06-20', status: 'Approved',        numFiles: 4  },
+  { id: '14', invoiceNo: 'INV-2026-0829', client: 'Cartier International', shipmentId: 'MLCA-2026-001829', amount: '$210,000.00',  dueDate: '2026-07-01', status: 'Draft',           numFiles: 3  },
+  // UBS AG — 2 invoices
   { id: '3',  invoiceNo: 'INV-2026-0845', client: 'UBS AG',                shipmentId: 'MLCA-2026-001845', amount: '$312,800.00',  dueDate: '2026-06-06', status: 'Overdue',         numFiles: 9  },
+  { id: '15', invoiceNo: 'INV-2026-0828', client: 'UBS AG',                shipmentId: 'MLCA-2026-001828', amount: '$164,000.00',  dueDate: '2026-06-22', status: 'Reminded',        numFiles: 6  },
+  // Van Cleef & Arpels — 2 invoices
   { id: '4',  invoiceNo: 'INV-2026-0844', client: 'Van Cleef & Arpels',    shipmentId: 'MLCA-2026-001844', amount: '$98,400.00',   dueDate: '2026-06-03', status: 'Paid',            numFiles: 5  },
+  { id: '16', invoiceNo: 'INV-2026-0827', client: 'Van Cleef & Arpels',    shipmentId: 'MLCA-2026-001827', amount: '$137,000.00',  dueDate: '2026-06-25', status: 'Processed',       numFiles: 8  },
+  // Royal Bank of Canada — 2 invoices
   { id: '5',  invoiceNo: 'INV-2026-0843', client: 'Royal Bank of Canada',  shipmentId: 'MLCA-2026-001843', amount: '$145,500.00',  dueDate: '2026-06-09', status: 'Reminded',        numFiles: 6  },
+  { id: '17', invoiceNo: 'INV-2026-0826', client: 'Royal Bank of Canada',  shipmentId: 'MLCA-2026-001826', amount: '$228,000.00',  dueDate: '2026-06-30', status: 'Approved',        numFiles: 7  },
+  // Bulgari — 2 invoices
   { id: '6',  invoiceNo: 'INV-2026-0842', client: 'Bulgari',               shipmentId: 'MLCA-2026-001842', amount: '$168,050.00',  dueDate: '2026-06-22', status: 'Draft',           numFiles: 3  },
+  { id: '18', invoiceNo: 'INV-2026-0825', client: 'Bulgari',               shipmentId: 'MLCA-2026-001825', amount: '$376,000.00',  dueDate: '2026-05-30', status: 'Paid',            numFiles: 9  },
+  // Sotheby's — 2 invoices
   { id: '7',  invoiceNo: 'INV-2026-0841', client: "Sotheby's",             shipmentId: 'MLCA-2026-001841', amount: '$92,300.00',   dueDate: '2026-06-15', status: 'Partially Paid',  numFiles: 11 },
+  { id: '19', invoiceNo: 'INV-2026-0824', client: "Sotheby's",             shipmentId: 'MLCA-2026-001824', amount: '$192,500.00',  dueDate: '2026-06-27', status: 'Draft',           numFiles: 4  },
+  // Christie's — 2 invoices
   { id: '8',  invoiceNo: 'INV-2026-0840', client: "Christie's",            shipmentId: 'MLCA-2026-001840', amount: '$410,000.00',  dueDate: '2026-05-28', status: 'Refused',         numFiles: 8  },
-  { id: '9',  invoiceNo: 'INV-2026-0839', client: 'Piaget SA',             shipmentId: 'MLCA-2026-001839', amount: '$78,650.00',   dueDate: '2026-06-25', status: 'Approved',        numFiles: 3  },
-  { id: '10', invoiceNo: 'INV-2026-0838', client: 'De Beers Group',        shipmentId: 'MLCA-2026-001838', amount: '$526,000.00',  dueDate: '2026-06-30', status: 'Draft',           numFiles: 12 },
+  { id: '20', invoiceNo: 'INV-2026-0823', client: "Christie's",            shipmentId: 'MLCA-2026-001823', amount: '$341,000.00',  dueDate: '2026-06-19', status: 'Approved',        numFiles: 6  },
+  // Graff Diamonds — 2 invoices
   { id: '11', invoiceNo: 'INV-2026-0837', client: 'Graff Diamonds',        shipmentId: 'MLCA-2026-001837', amount: '$887,500.00',  dueDate: '2026-05-15', status: 'Overdue',         numFiles: 10 },
+  { id: '21', invoiceNo: 'INV-2026-0820', client: 'Graff Diamonds',        shipmentId: 'MLCA-2026-001820', amount: '$645,000.00',  dueDate: '2026-06-24', status: 'Processed',       numFiles: 12 },
+  // Harry Winston — 2 invoices
   { id: '12', invoiceNo: 'INV-2026-0836', client: 'Harry Winston',         shipmentId: 'MLCA-2026-001836', amount: '$234,100.00',  dueDate: '2026-06-10', status: 'Paid',            numFiles: 6  },
+  { id: '22', invoiceNo: 'INV-2026-0819', client: 'Harry Winston',         shipmentId: 'MLCA-2026-001819', amount: '$318,000.00',  dueDate: '2026-06-21', status: 'Reminded',        numFiles: 8  },
 ];
 
 const outstandingInvoices: OutstandingInvoice[] = [
-  { id: 'o1', invoiceNo: 'INV-2026-0847-O', client: 'Tiffany & Co.',        shipmentId: 'MLCA-2026-001847', amount: '$2,469,650', dueDate: '2026-06-18', daysOverdue: 0,  status: 'current', numFiles: 8  },
-  { id: 'o2', invoiceNo: 'INV-2026-0842-O', client: 'Cartier International', shipmentId: 'MLCA-2026-001842', amount: '$1,245,800', dueDate: '2026-05-25', daysOverdue: 10, status: 'overdue', numFiles: 6  },
-  { id: 'o3', invoiceNo: 'INV-2026-0838-O', client: 'Van Cleef & Arpels',    shipmentId: 'MLCA-2026-001838', amount: '$890,400',   dueDate: '2026-05-15', daysOverdue: 20, status: 'overdue', numFiles: 5  },
-  { id: 'o4', invoiceNo: 'INV-2026-0835-O', client: 'Royal Bank of Canada',  shipmentId: 'MLCA-2026-001835', amount: '$3,150,000', dueDate: '2026-04-10', daysOverdue: 55, status: 'overdue', numFiles: 12 },
-  { id: 'o5', invoiceNo: 'INV-2026-0829-O', client: 'UBS AG',                shipmentId: 'MLCA-2026-001829', amount: '$2,875,200', dueDate: '2026-03-18', daysOverdue: 78, status: 'overdue', numFiles: 10 },
-  { id: 'o6', invoiceNo: 'INV-2026-0822-O', client: 'Bulgari',               shipmentId: 'MLCA-2026-001822', amount: '$1,680,500', dueDate: '2026-06-20', daysOverdue: 0,  status: 'current', numFiles: 7  },
+  { id: 'o1',  invoiceNo: 'INV-2026-0847-O', client: 'Tiffany & Co.',        shipmentId: 'MLCA-2026-001847', amount: '$2,469,650', dueDate: '2026-06-18', daysOverdue: 0,  status: 'current', numFiles: 8  },
+  { id: 'o9',  invoiceNo: 'INV-2026-0830-O', client: 'Tiffany & Co.',        shipmentId: 'MLCA-2026-001830', amount: '$1,820,000', dueDate: '2026-07-05', daysOverdue: 0,  status: 'current', numFiles: 5  },
+  { id: 'o2',  invoiceNo: 'INV-2026-0842-O', client: 'Cartier International', shipmentId: 'MLCA-2026-001842', amount: '$1,245,800', dueDate: '2026-05-25', daysOverdue: 10, status: 'overdue', numFiles: 6  },
+  { id: 'o10', invoiceNo: 'INV-2026-0829-O', client: 'Cartier International', shipmentId: 'MLCA-2026-001829', amount: '$2,100,000', dueDate: '2026-07-01', daysOverdue: 0,  status: 'current', numFiles: 3  },
+  { id: 'o3',  invoiceNo: 'INV-2026-0838-O', client: 'Van Cleef & Arpels',    shipmentId: 'MLCA-2026-001838', amount: '$890,400',   dueDate: '2026-05-15', daysOverdue: 20, status: 'overdue', numFiles: 5  },
+  { id: 'o4',  invoiceNo: 'INV-2026-0835-O', client: 'Royal Bank of Canada',  shipmentId: 'MLCA-2026-001835', amount: '$3,150,000', dueDate: '2026-04-10', daysOverdue: 55, status: 'overdue', numFiles: 12 },
+  { id: 'o11', invoiceNo: 'INV-2026-0826-O', client: 'Royal Bank of Canada',  shipmentId: 'MLCA-2026-001826', amount: '$2,280,000', dueDate: '2026-06-30', daysOverdue: 0,  status: 'current', numFiles: 7  },
+  { id: 'o5',  invoiceNo: 'INV-2026-0845-O', client: 'UBS AG',                shipmentId: 'MLCA-2026-001845', amount: '$2,875,200', dueDate: '2026-03-18', daysOverdue: 78, status: 'overdue', numFiles: 10 },
+  { id: 'o12', invoiceNo: 'INV-2026-0828-O', client: 'UBS AG',                shipmentId: 'MLCA-2026-001828', amount: '$1,640,000', dueDate: '2026-05-20', daysOverdue: 15, status: 'overdue', numFiles: 6  },
+  { id: 'o6',  invoiceNo: 'INV-2026-0822-O', client: 'Bulgari',               shipmentId: 'MLCA-2026-001822', amount: '$1,680,500', dueDate: '2026-06-20', daysOverdue: 0,  status: 'current', numFiles: 7  },
+  { id: 'o7',  invoiceNo: 'INV-2026-0837-O', client: 'Graff Diamonds',        shipmentId: 'MLCA-2026-001837', amount: '$887,500',   dueDate: '2026-05-15', daysOverdue: 40, status: 'overdue', numFiles: 10 },
+  { id: 'o8',  invoiceNo: 'INV-2026-0841-O', client: "Sotheby's",             shipmentId: 'MLCA-2026-001841', amount: '$2,750,000', dueDate: '2026-06-22', daysOverdue: 0,  status: 'current', numFiles: 11 },
 ];
 
 const buildStatusConfig = (accent: string): Record<InvoiceStatus, { color: string; bg: string; border: string; accentStyle?: React.CSSProperties }> => ({
@@ -279,6 +305,23 @@ export function TrackInvoice() {
   const ACCENT = tc.accent;
   const statusConfig = buildStatusConfig(ACCENT);
 
+  // ERP sync state
+  const [erpSyncing, setErpSyncing] = useState(false);
+  const [erpSyncDone, setErpSyncDone] = useState(false);
+  const handleErpSync = () => {
+    setErpSyncing(true); setErpSyncDone(false);
+    setTimeout(() => { setErpSyncing(false); setErpSyncDone(true); setTimeout(() => setErpSyncDone(false), 2500); }, 1600);
+  };
+
+  // Shared filter state (preserved across tabs)
+  const [appliedFilters, setAppliedFilters] = useState<FilterState>(EMPTY_FILTERS);
+
+  // Bucket Orders — shared across both tabs
+  const [bucketMode, setBucketMode] = useState(false);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const toggleGroup = (company: string) =>
+    setCollapsedGroups(prev => { const n = new Set(prev); n.has(company) ? n.delete(company) : n.add(company); return n; });
+
   // Tab state
   const [activeTab, setActiveTab] = useState<'all' | 'outstanding'>('all');
 
@@ -303,7 +346,22 @@ export function TrackInvoice() {
     return inv.status;
   };
 
+  // Invoice payment-status bucket for filter matching
+  const invoicePaymentStatus = (inv: Invoice): string => {
+    const eff = getEffectiveStatus(inv);
+    if (eff === 'Paid') return 'Paid';
+    if (eff === 'Partially Paid') return 'Partially Paid';
+    if (eff === 'Overdue') return 'Overdue';
+    return 'Unpaid';
+  };
+
+  const allCompanyOptions = useMemo(() => [...new Set(mockInvoices.map(i => i.client))].sort(), []);
+  const allStatusOptions = ['Draft', 'Approved', 'Processed', 'Reminded', 'Refused', 'Paid', 'Partially Paid', 'Overdue'];
+  const outstandingCompanyOptions = useMemo(() => [...new Set(outstandingInvoices.map(o => o.client))].sort(), []);
+  const outstandingStatusOptions = ['Current', 'Overdue'];
+
   const filtered = useMemo(() => {
+    const { companies, statuses: fStatuses, datePreset, dateFrom, dateTo, paymentStatuses } = appliedFilters;
     return mockInvoices.filter(inv => {
       const effective = getEffectiveStatus(inv);
       const matchStatus = !activeStatus || effective === activeStatus;
@@ -313,10 +371,43 @@ export function TrackInvoice() {
         inv.invoiceNo.toLowerCase().includes(q) ||
         inv.client.toLowerCase().includes(q) ||
         inv.shipmentId.toLowerCase().includes(q);
-      return matchStatus && matchSearch;
+      const matchCompany = companies.length === 0 || companies.includes(inv.client);
+      const matchFStatus = fStatuses.length === 0 || fStatuses.includes(effective);
+      const matchDate = isDateInRange(inv.dueDate, datePreset, dateFrom, dateTo);
+      const matchPayment = paymentStatuses.length === 0 || paymentStatuses.includes(invoicePaymentStatus(inv));
+      return matchStatus && matchSearch && matchCompany && matchFStatus && matchDate && matchPayment;
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeStatus, search, markedPaid, overrideReminded]);
+  }, [activeStatus, search, markedPaid, overrideReminded, appliedFilters]);
+
+  // Bucket grouping helpers
+  type InvTableRow<T> =
+    | { type: 'shipment'; data: T }
+    | { type: 'header'; company: string; count: number; totalValue: string };
+
+  function buildGroupedRows<T extends { client: string; amount: string }>(
+    items: T[],
+    collapsed: Set<string>,
+  ): InvTableRow<T>[] {
+    const groups = new Map<string, T[]>();
+    [...items].sort((a, b) => a.client.localeCompare(b.client)).forEach(inv => {
+      if (!groups.has(inv.client)) groups.set(inv.client, []);
+      groups.get(inv.client)!.push(inv);
+    });
+    const rows: InvTableRow<T>[] = [];
+    groups.forEach((groupItems, company) => {
+      const total = groupItems.reduce((s, i) => s + parseFloat(i.amount.replace(/[$,]/g, '')), 0);
+      const totalValue = total >= 1_000_000 ? `$${(total / 1_000_000).toFixed(2)}M` : `$${total.toLocaleString()}`;
+      rows.push({ type: 'header', company, count: groupItems.length, totalValue });
+      if (!collapsed.has(company)) groupItems.forEach(i => rows.push({ type: 'shipment', data: i }));
+    });
+    return rows;
+  }
+
+  const allTableRows = useMemo(
+    () => bucketMode ? buildGroupedRows(filtered, collapsedGroups) : filtered.map(d => ({ type: 'shipment' as const, data: d })),
+    [filtered, bucketMode, collapsedGroups],
+  );
 
   const countByStatus = (s: InvoiceStatus) =>
     mockInvoices.filter(inv => getEffectiveStatus(inv) === s).length;
@@ -369,10 +460,31 @@ export function TrackInvoice() {
 
       {/* Page header */}
       <div className={`${tc.headerBg} border-b px-4 md:px-8 py-5`}>
-        <h1 className="mb-0.5" style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-0.01em' }}>
-          Invoice Tracking
-        </h1>
-        <p className={`text-sm ${tc.subtext}`}>Manage and monitor invoice status across all shipments</p>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="mb-0.5" style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-0.01em' }}>
+              Invoice Tracking
+            </h1>
+            <p className={`text-sm ${tc.subtext}`}>Manage and monitor invoice status across all shipments</p>
+          </div>
+          <button
+            onClick={handleErpSync}
+            disabled={erpSyncing}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all flex-shrink-0"
+            style={{
+              background: erpSyncDone ? 'rgba(34,197,94,0.15)' : '#BAAB48',
+              color: erpSyncDone ? '#22c55e' : '#111111',
+              border: erpSyncDone ? '1px solid rgba(34,197,94,0.35)' : 'none',
+              opacity: erpSyncing ? 0.7 : 1,
+              cursor: erpSyncing ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {erpSyncDone
+              ? <><CheckCircle size={14} /> Synced</>
+              : <>{erpSyncing ? <RefreshCw size={14} className="animate-spin" /> : <Server size={14} />} Sync Invoices With ERP</>
+            }
+          </button>
+        </div>
       </div>
 
       <div className="p-4 md:p-8">
@@ -440,26 +552,46 @@ export function TrackInvoice() {
               )}
             </div>
 
-            {/* Search bar */}
-            <div className={`${tc.cardBg} border ${tc.border} rounded-xl p-3 mb-4`}>
-              <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-                <div className="relative flex-1 max-w-md">
-                  <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${tc.isDark ? 'text-[#666]' : 'text-[#aaa]'}`} />
-                  <input
-                    type="text"
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    placeholder="Search invoice, client, shipment..."
-                    className={`w-full border rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none ${tc.inputBg}`}
-                    onFocus={e => { e.currentTarget.style.borderColor = ACCENT; e.currentTarget.style.boxShadow = `0 0 0 1px ${ACCENT}`; }}
-                    onBlur={e => { e.currentTarget.style.borderColor = ''; e.currentTarget.style.boxShadow = ''; }}
-                  />
-                </div>
-                <span className={`${tc.subtext} text-sm`}>
-                  {filtered.length} invoice{filtered.length !== 1 ? 's' : ''}
-                </span>
+            {/* Search + Filter bar */}
+            <div className="flex flex-wrap items-center gap-3 mb-3">
+              {/* Bucket Orders toggle */}
+              <button
+                onClick={() => { setBucketMode(b => !b); setCollapsedGroups(new Set()); }}
+                className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all flex-shrink-0"
+                style={{
+                  background: bucketMode ? 'rgba(186,171,72,0.15)' : (tc.isDark ? '#1c1c1c' : '#ffffff'),
+                  border: `1px solid ${bucketMode ? 'rgba(186,171,72,0.55)' : (tc.isDark ? '#2a2a2a' : '#e0e0e0')}`,
+                  color: bucketMode ? '#BAAB48' : (tc.isDark ? '#888888' : '#666666'),
+                }}
+              >
+                <Layers size={14} />
+                Bucket Orders
+                {bucketMode && <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '16px', height: '16px', borderRadius: '50%', background: '#BAAB48', color: '#111', fontSize: '9px', fontWeight: 700 }}>✓</span>}
+              </button>
+              <div className="relative flex-1 min-w-[200px] max-w-md">
+                <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${tc.isDark ? 'text-[#666]' : 'text-[#aaa]'}`} />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Search invoice, client, shipment..."
+                  className={`w-full border rounded-xl pl-9 pr-4 py-2 text-sm focus:outline-none ${tc.inputBg}`}
+                  onFocus={e => { e.currentTarget.style.borderColor = ACCENT; e.currentTarget.style.boxShadow = `0 0 0 1px ${ACCENT}44`; }}
+                  onBlur={e => { e.currentTarget.style.borderColor = ''; e.currentTarget.style.boxShadow = ''; }}
+                />
               </div>
+              <FilterPanel
+                companyOptions={allCompanyOptions}
+                statusOptions={allStatusOptions}
+                applied={appliedFilters}
+                onApply={setAppliedFilters}
+                isDark={tc.isDark}
+              />
+              {countActiveFilters(appliedFilters) > 0 && (
+                <span className={`text-xs ${tc.subtext}`}>{filtered.length} of {mockInvoices.length} invoices</span>
+              )}
             </div>
+            <ActiveFilterChips applied={appliedFilters} onChange={setAppliedFilters} />
 
             {/* All Invoices Table */}
             <div className={`${tc.cardBg} border ${tc.border} rounded-xl overflow-hidden`}>
@@ -476,91 +608,62 @@ export function TrackInvoice() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.length === 0 ? (
-                      <tr>
-                        <td colSpan={10} className={`px-5 py-12 text-center ${tc.subtext} text-sm`}>
-                          No invoices match the current filters.
-                        </td>
-                      </tr>
-                    ) : (
-                      filtered.map(inv => {
-                        const cfg = getStatusCfg(inv);
-                        const statusLabel = getStatusLabel(inv);
-                        const reminderCount = reminderCounts[inv.id] || 0;
-                        const paid = isInvPaid(inv);
-
+                    {allTableRows.length === 0 ? (
+                      <tr><td colSpan={10} className={`px-5 py-12 text-center ${tc.subtext} text-sm`}>No invoices match the current filters.</td></tr>
+                    ) : allTableRows.map((row) => {
+                      if (row.type === 'header') {
+                        const isCollapsed = collapsedGroups.has(row.company);
                         return (
-                          <tr key={inv.id} className={`border-b ${tc.border} ${tc.hoverBg} transition-colors`}>
-                            <td className="px-4 py-3.5">
-                              <code className="text-sm font-semibold" style={{ color: ACCENT }}>{inv.invoiceNo}</code>
-                            </td>
-                            <td className="px-4 py-3.5 text-sm" style={{ fontWeight: 600 }}>{inv.client}</td>
-                            <td className="px-4 py-3.5">
-                              <code className={`text-xs ${tc.subtext}`}>{inv.shipmentId}</code>
-                            </td>
-                            <td className="px-4 py-3.5 text-sm font-bold">{inv.amount}</td>
-                            <td className={`px-4 py-3.5 text-sm ${tc.subtext}`}>{inv.dueDate}</td>
-                            <td className="px-4 py-3.5">
-                              <span
-                                className={`px-2.5 py-1 rounded-full text-xs border ${cfg.accentStyle ? '' : `${cfg.color} ${cfg.bg} ${cfg.border}`}`}
-                                style={cfg.accentStyle ?? undefined}
-                              >
-                                {statusLabel}
-                              </span>
-                            </td>
-                            <td className={`px-4 py-3.5 text-sm ${tc.subtext}`}>{inv.numFiles} files</td>
-                            <td className="px-4 py-3.5">
-                              <ActionsDropdown
-                                id={inv.id}
-                                invoiceNo={inv.invoiceNo}
-                                isPaid={paid}
-                                openMenuId={openMenuId}
-                                setOpenMenuId={setOpenMenuId}
-                                onMarkPaid={() => setPaidModal({ id: inv.id, invoiceNo: inv.invoiceNo })}
-                                tc={tc}
-                                accent={ACCENT}
-                              />
-                            </td>
-                            <td className="px-4 py-3.5">
-                              <button
-                                onClick={() => handleSendReminder(inv)}
-                                className="flex items-center gap-1.5 rounded-lg border transition-all"
-                                style={{
-                                  padding: '5px 10px',
-                                  fontSize: '11px',
-                                  fontWeight: 500,
-                                  borderColor: reminderCount > 0 ? '#7c3aed60' : tc.isDark ? '#2a2a2a' : '#ddd',
-                                  background: reminderCount > 0 ? 'rgba(124,58,237,0.1)' : tc.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
-                                  color: reminderCount > 0 ? '#a78bfa' : tc.isDark ? '#888' : '#666',
-                                }}
-                                title={`Send reminder (${reminderCount} sent)`}
-                              >
-                                <Bell className="w-3.5 h-3.5" style={{ flexShrink: 0 }} />
-                                <span>Remind</span>
-                                {reminderCount > 0 && (
-                                  <span
-                                    className="flex items-center justify-center rounded-full"
-                                    style={{ minWidth: '16px', height: '16px', background: '#7c3aed', color: '#fff', fontSize: '9px', fontWeight: 700, padding: '0 4px' }}
-                                  >
-                                    {reminderCount}
-                                  </span>
-                                )}
-                              </button>
-                            </td>
-                            <td className="px-4 py-3.5">
-                              <button
-                                onClick={() => navigate(`/invoice/${inv.shipmentId}`)}
-                                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all whitespace-nowrap"
-                                style={{ background: `${ACCENT}15`, color: ACCENT, border: `1px solid ${ACCENT}30` }}
-                              >
-                                <Package className="w-3.5 h-3.5" />
-                                View
-                              </button>
+                          <tr key={`gh-${row.company}`} onClick={() => toggleGroup(row.company)} className="cursor-pointer select-none" style={{ background: tc.isDark ? 'rgba(186,171,72,0.06)' : 'rgba(186,171,72,0.05)' }}>
+                            <td colSpan={10} className="px-4 py-2.5">
+                              <div className="flex items-center gap-2.5">
+                                <div className="flex items-center justify-center w-6 h-6 rounded-lg" style={{ background: 'rgba(186,171,72,0.15)' }}>
+                                  <Building2 size={13} color="#BAAB48" />
+                                </div>
+                                <span style={{ fontWeight: 700, fontSize: '13px', color: '#BAAB48' }}>{row.company}</span>
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold" style={{ background: 'rgba(186,171,72,0.18)', color: '#BAAB48' }}>{row.count} invoice{row.count !== 1 ? 's' : ''}</span>
+                                <span className={`text-xs ${tc.subtext} ml-1`}>Total: <span style={{ fontWeight: 600, color: tc.isDark ? '#cccccc' : '#333' }}>{row.totalValue}</span></span>
+                                <ChevronDown size={13} style={{ marginLeft: 'auto', color: '#BAAB48', transform: isCollapsed ? 'rotate(-90deg)' : 'none', transition: 'transform 0.2s' }} />
+                              </div>
                             </td>
                           </tr>
                         );
-                      })
-                    )}
+                      }
+                      const inv = row.data;
+                      const cfg = getStatusCfg(inv);
+                      const statusLabel = getStatusLabel(inv);
+                      const reminderCount = reminderCounts[inv.id] || 0;
+                      const paid = isInvPaid(inv);
+                      return (
+                        <tr key={inv.id} className={`border-b ${tc.border} ${tc.hoverBg} transition-colors`}>
+                          <td className="px-4 py-3.5" style={bucketMode ? { paddingLeft: '40px' } : {}}>
+                            <code className="text-sm font-semibold" style={{ color: ACCENT }}>{inv.invoiceNo}</code>
+                          </td>
+                          <td className="px-4 py-3.5 text-sm" style={{ fontWeight: 600 }}>{inv.client}</td>
+                          <td className="px-4 py-3.5"><code className={`text-xs ${tc.subtext}`}>{inv.shipmentId}</code></td>
+                          <td className="px-4 py-3.5 text-sm font-bold">{inv.amount}</td>
+                          <td className={`px-4 py-3.5 text-sm ${tc.subtext}`}>{inv.dueDate}</td>
+                          <td className="px-4 py-3.5">
+                            <span className={`px-2.5 py-1 rounded-full text-xs border ${cfg.accentStyle ? '' : `${cfg.color} ${cfg.bg} ${cfg.border}`}`} style={cfg.accentStyle ?? undefined}>{statusLabel}</span>
+                          </td>
+                          <td className={`px-4 py-3.5 text-sm ${tc.subtext}`}>{inv.numFiles} files</td>
+                          <td className="px-4 py-3.5">
+                            <ActionsDropdown id={inv.id} invoiceNo={inv.invoiceNo} isPaid={paid} openMenuId={openMenuId} setOpenMenuId={setOpenMenuId} onMarkPaid={() => setPaidModal({ id: inv.id, invoiceNo: inv.invoiceNo })} tc={tc} accent={ACCENT} />
+                          </td>
+                          <td className="px-4 py-3.5">
+                            <button onClick={() => handleSendReminder(inv)} className="flex items-center gap-1.5 rounded-lg border transition-all" style={{ padding: '5px 10px', fontSize: '11px', fontWeight: 500, borderColor: reminderCount > 0 ? '#7c3aed60' : tc.isDark ? '#2a2a2a' : '#ddd', background: reminderCount > 0 ? 'rgba(124,58,237,0.1)' : 'transparent', color: reminderCount > 0 ? '#a78bfa' : tc.isDark ? '#888' : '#666' }}>
+                              <Bell className="w-3.5 h-3.5" /><span>Remind</span>
+                              {reminderCount > 0 && <span className="flex items-center justify-center rounded-full" style={{ minWidth: '16px', height: '16px', background: '#7c3aed', color: '#fff', fontSize: '9px', fontWeight: 700, padding: '0 4px' }}>{reminderCount}</span>}
+                            </button>
+                          </td>
+                          <td className="px-4 py-3.5">
+                            <button onClick={() => navigate(`/invoice/${inv.shipmentId}`)} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg whitespace-nowrap" style={{ background: `${ACCENT}15`, color: ACCENT, border: `1px solid ${ACCENT}30` }}>
+                              <Package className="w-3.5 h-3.5" /> View
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -642,7 +745,42 @@ export function TrackInvoice() {
         )}
 
         {/* ── OUTSTANDING INVOICES TAB ─────────────────────────── */}
-        {activeTab === 'outstanding' && (
+        {activeTab === 'outstanding' && (() => {
+          const { companies, statuses: fStatuses, datePreset, dateFrom, dateTo, paymentStatuses } = appliedFilters;
+          const filteredOutstanding = outstandingInvoices.filter(inv => {
+            const matchCompany = companies.length === 0 || companies.includes(inv.client);
+            const statusLabel = inv.status === 'current' ? 'Current' : 'Overdue';
+            const matchFStatus = fStatuses.length === 0 || fStatuses.includes(statusLabel);
+            const matchDate = isDateInRange(inv.dueDate, datePreset, dateFrom, dateTo);
+            const payBucket = markedPaid.has(inv.id) ? 'Paid' : inv.status === 'overdue' ? 'Overdue' : 'Unpaid';
+            const matchPayment = paymentStatuses.length === 0 || paymentStatuses.includes(payBucket);
+            return matchCompany && matchFStatus && matchDate && matchPayment;
+          });
+          return (
+          <>
+            {/* Filter + Bucket bar */}
+            <div className="flex flex-wrap items-center gap-3 mb-3">
+              <button
+                onClick={() => { setBucketMode(b => !b); setCollapsedGroups(new Set()); }}
+                className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all flex-shrink-0"
+                style={{ background: bucketMode ? 'rgba(186,171,72,0.15)' : (tc.isDark ? '#1c1c1c' : '#ffffff'), border: `1px solid ${bucketMode ? 'rgba(186,171,72,0.55)' : (tc.isDark ? '#2a2a2a' : '#e0e0e0')}`, color: bucketMode ? '#BAAB48' : (tc.isDark ? '#888888' : '#666666') }}
+              >
+                <Layers size={14} />
+                Bucket Orders
+                {bucketMode && <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '16px', height: '16px', borderRadius: '50%', background: '#BAAB48', color: '#111', fontSize: '9px', fontWeight: 700 }}>✓</span>}
+              </button>
+              <FilterPanel
+                companyOptions={outstandingCompanyOptions}
+                statusOptions={outstandingStatusOptions}
+                applied={appliedFilters}
+                onApply={setAppliedFilters}
+                isDark={tc.isDark}
+              />
+              {countActiveFilters(appliedFilters) > 0 && (
+                <span className={`text-xs ${tc.subtext}`}>{filteredOutstanding.length} of {outstandingInvoices.length} outstanding</span>
+              )}
+            </div>
+            <ActiveFilterChips applied={appliedFilters} onChange={setAppliedFilters} />
           <div className={`${tc.cardBg} border ${tc.border} rounded-xl overflow-hidden`}>
             {/* Desktop */}
             <div className="hidden md:block overflow-x-auto">
@@ -657,83 +795,58 @@ export function TrackInvoice() {
                   </tr>
                 </thead>
                 <tbody>
-                  {outstandingInvoices.map(inv => {
+                  {(bucketMode ? buildGroupedRows(filteredOutstanding, collapsedGroups) : filteredOutstanding.map(d => ({ type: 'shipment' as const, data: d }))).map(row => {
+                    if (row.type === 'header') {
+                      const isCollapsed = collapsedGroups.has(row.company);
+                      return (
+                        <tr key={`ogh-${row.company}`} onClick={() => toggleGroup(row.company)} className="cursor-pointer select-none" style={{ background: tc.isDark ? 'rgba(186,171,72,0.06)' : 'rgba(186,171,72,0.05)' }}>
+                          <td colSpan={10} className="px-4 py-2.5">
+                            <div className="flex items-center gap-2.5">
+                              <div className="flex items-center justify-center w-6 h-6 rounded-lg" style={{ background: 'rgba(186,171,72,0.15)' }}><Building2 size={13} color="#BAAB48" /></div>
+                              <span style={{ fontWeight: 700, fontSize: '13px', color: '#BAAB48' }}>{row.company}</span>
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold" style={{ background: 'rgba(186,171,72,0.18)', color: '#BAAB48' }}>{row.count} invoice{row.count !== 1 ? 's' : ''}</span>
+                              <span className={`text-xs ${tc.subtext} ml-1`}>Total: <span style={{ fontWeight: 600, color: tc.isDark ? '#cccccc' : '#333' }}>{row.totalValue}</span></span>
+                              <ChevronDown size={13} style={{ marginLeft: 'auto', color: '#BAAB48', transform: isCollapsed ? 'rotate(-90deg)' : 'none', transition: 'transform 0.2s' }} />
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    }
+                    const inv = row.data;
                     const reminderCount = reminderCounts[inv.id] || 0;
                     const isCurrent = inv.status === 'current';
                     return (
                       <tr key={inv.id} className={`border-b ${tc.border} ${tc.hoverBg} transition-colors`}>
-                        <td className="px-4 py-3.5">
+                        <td className="px-4 py-3.5" style={bucketMode ? { paddingLeft: '40px' } : {}}>
                           <code className="text-sm font-semibold" style={{ color: ACCENT }}>{inv.invoiceNo}</code>
                         </td>
                         <td className="px-4 py-3.5 text-sm font-semibold">{inv.client}</td>
-                        <td className="px-4 py-3.5">
-                          <code className={`text-xs ${tc.subtext}`}>{inv.shipmentId}</code>
-                        </td>
+                        <td className="px-4 py-3.5"><code className={`text-xs ${tc.subtext}`}>{inv.shipmentId}</code></td>
                         <td className="px-4 py-3.5 text-sm font-bold">{inv.amount}</td>
                         <td className="px-4 py-3.5">
                           <div className={`text-sm ${tc.subtext}`}>{inv.dueDate}</div>
-                          {inv.daysOverdue > 0 && (
-                            <div className="flex items-center gap-1 text-red-400 text-xs mt-0.5">
-                              <AlertCircle className="w-3 h-3" />
-                              {inv.daysOverdue}d overdue
-                            </div>
-                          )}
+                          {inv.daysOverdue > 0 && <div className="flex items-center gap-1 text-red-400 text-xs mt-0.5"><AlertCircle className="w-3 h-3" />{inv.daysOverdue}d overdue</div>}
                         </td>
                         <td className="px-4 py-3.5">
-                          {isCurrent ? (
-                            <span className="px-2.5 py-1 rounded-full text-xs border bg-green-500/15 text-green-400 border-green-500/30">
-                              Current
-                            </span>
-                          ) : (
-                            <span className="px-2.5 py-1 rounded-full text-xs border bg-red-500/15 text-red-400 border-red-500/30">
-                              Overdue {inv.daysOverdue}d
-                            </span>
-                          )}
+                          {isCurrent ? <span className="px-2.5 py-1 rounded-full text-xs border bg-green-500/15 text-green-400 border-green-500/30">Current</span>
+                            : <span className="px-2.5 py-1 rounded-full text-xs border bg-red-500/15 text-red-400 border-red-500/30">Overdue {inv.daysOverdue}d</span>}
                         </td>
                         <td className={`px-4 py-3.5 text-sm ${tc.subtext}`}>{inv.numFiles} files</td>
                         <td className="px-4 py-3.5">
                           <div className="flex items-center gap-1.5">
-                            <button title="View Invoice" className={`p-1.5 rounded ${tc.hoverBg} ${tc.subtext} transition-colors`}>
-                              <Eye className="w-4 h-4" />
-                            </button>
-                            <button title="Download Invoice" className={`p-1.5 rounded ${tc.hoverBg} ${tc.subtext} transition-colors`}>
-                              <Download className="w-4 h-4" />
-                            </button>
+                            <button title="View Invoice" className={`p-1.5 rounded ${tc.hoverBg} ${tc.subtext}`}><Eye className="w-4 h-4" /></button>
+                            <button title="Download Invoice" className={`p-1.5 rounded ${tc.hoverBg} ${tc.subtext}`}><Download className="w-4 h-4" /></button>
                           </div>
                         </td>
                         <td className="px-4 py-3.5">
-                          <button
-                            onClick={() => handleSendReminderOutstanding(inv.id)}
-                            className="flex items-center gap-1.5 rounded-lg border transition-all"
-                            style={{
-                              padding: '5px 10px',
-                              fontSize: '11px',
-                              fontWeight: 500,
-                              borderColor: reminderCount > 0 ? '#7c3aed60' : tc.isDark ? '#2a2a2a' : '#ddd',
-                              background: reminderCount > 0 ? 'rgba(124,58,237,0.1)' : tc.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
-                              color: reminderCount > 0 ? '#a78bfa' : tc.isDark ? '#888' : '#666',
-                            }}
-                          >
-                            <Bell className="w-3.5 h-3.5" style={{ flexShrink: 0 }} />
-                            <span>Remind</span>
-                            {reminderCount > 0 && (
-                              <span
-                                className="flex items-center justify-center rounded-full"
-                                style={{ minWidth: '16px', height: '16px', background: '#7c3aed', color: '#fff', fontSize: '9px', fontWeight: 700, padding: '0 4px' }}
-                              >
-                                {reminderCount}
-                              </span>
-                            )}
+                          <button onClick={() => handleSendReminderOutstanding(inv.id)} className="flex items-center gap-1.5 rounded-lg border transition-all" style={{ padding: '5px 10px', fontSize: '11px', fontWeight: 500, borderColor: reminderCount > 0 ? '#7c3aed60' : tc.isDark ? '#2a2a2a' : '#ddd', background: reminderCount > 0 ? 'rgba(124,58,237,0.1)' : 'transparent', color: reminderCount > 0 ? '#a78bfa' : tc.isDark ? '#888' : '#666' }}>
+                            <Bell className="w-3.5 h-3.5" /><span>Remind</span>
+                            {reminderCount > 0 && <span className="flex items-center justify-center rounded-full" style={{ minWidth: '16px', height: '16px', background: '#7c3aed', color: '#fff', fontSize: '9px', fontWeight: 700, padding: '0 4px' }}>{reminderCount}</span>}
                           </button>
                         </td>
                         <td className="px-4 py-3.5">
-                          <button
-                            onClick={() => navigate(`/invoice/${inv.shipmentId}`)}
-                            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all whitespace-nowrap"
-                            style={{ background: `${ACCENT}15`, color: ACCENT, border: `1px solid ${ACCENT}30` }}
-                          >
-                            <Package className="w-3.5 h-3.5" />
-                            View
+                          <button onClick={() => navigate(`/invoice/${inv.shipmentId}`)} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg whitespace-nowrap" style={{ background: `${ACCENT}15`, color: ACCENT, border: `1px solid ${ACCENT}30` }}>
+                            <Package className="w-3.5 h-3.5" /> View
                           </button>
                         </td>
                       </tr>
@@ -745,7 +858,7 @@ export function TrackInvoice() {
 
             {/* Mobile cards */}
             <div className={`md:hidden divide-y ${tc.divider}`}>
-              {outstandingInvoices.map(inv => {
+              {filteredOutstanding.map(inv => {
                 const reminderCount = reminderCounts[inv.id] || 0;
                 const isCurrent = inv.status === 'current';
                 return (
@@ -800,7 +913,9 @@ export function TrackInvoice() {
               })}
             </div>
           </div>
-        )}
+          </>
+        );
+        })()}
       </div>
 
       {/* Mark as Paid Modal */}
