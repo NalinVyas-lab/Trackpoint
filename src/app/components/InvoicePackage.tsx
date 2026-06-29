@@ -570,10 +570,7 @@ const handleBuilderAdd = async (
   client_name: invoice?.client,
   tracking_no: invoice?.shipmentId,
 });
-    const paymentUrl =
-    `${window.location.origin}/payment/${invoice.shipmentId}` +
-    `?client=${encodeURIComponent(invoice.client)}` +
-    `&amount=${encodeURIComponent(invoice.amount)}`;
+    const paymentUrl = "http://192.168.1.8:8000/checkout/";
 
     await emailjs.send(
       PACKAGE_SERVICE_ID,
