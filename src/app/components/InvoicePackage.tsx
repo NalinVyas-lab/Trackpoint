@@ -1,14 +1,26 @@
 import { useState, useRef } from 'react';
-import { useParams } from 'react-router';
+import { useParams, useLocation } from 'react-router';
 import {
   Download, Send, FileText, CheckCircle, Mail, AlertCircle, Calendar,
   Plus, Upload, Trash2, Pencil, X, Check, ChevronDown, Image as ImageIcon,
 } from 'lucide-react';
 import { useTC } from '../contexts/ThemeContext';
 import { NavBar } from './NavBar';
+import emailjs from '@emailjs/browser';
 
 interface InvoiceItem { id: string; category: string; description: string; quantity: string; unitPrice: string; amount: string; }
 
+
+const PACKAGE_SERVICE_ID = 'service_bf3li5g';
+const PACKAGE_TEMPLATE_ID = 'template_hurd5gt';
+const PACKAGE_PUBLIC_KEY = 'pgUu6KiRV8clsNAZD';
+
+const INVOICE_SERVICE_ID = 'service_n9xmnah';
+const INVOICE_TEMPLATE_ID = 'template_c3zcjra';
+const INVOICE_PUBLIC_KEY = 'BVLIOYRpNq885gOul';
+
+const generateId = () =>
+  Date.now().toString() + Math.random().toString(36).substring(2, 9);
 interface Document {
   id: string;
   name: string;
@@ -31,6 +43,7 @@ interface BuilderData {
   dueDate: string;
   notes: string;
   lines: BuilderLine[];
+  amount?: number;
 }
 
 const defaultBuilder: BuilderData = {
@@ -96,7 +109,7 @@ function InvoiceBuilderModal({ isDark, tc, onClose, onAdd }: {
   isDark: boolean;
   tc: ReturnType<typeof useTC>;
   onClose: () => void;
-  onAdd: (name: string) => void;
+   onAdd: (invoiceData: BuilderData) => void;
 }) {
   const ACCENT = tc.accent;
   const [data, setData] = useState<BuilderData>(defaultBuilder);
@@ -302,10 +315,33 @@ function InvoiceBuilderModal({ isDark, tc, onClose, onAdd }: {
               Cancel
             </button>
             <button
-              onClick={() => { onAdd(`Custom Invoice - ${data.invoiceNumber}`); onClose(); }}
-              style={{ flex: 2, padding: '9px', background: ACCENT, color: tc.isDark ? '#0B2B26' : '#DAF1DE', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+              onClick={() => {
+                onAdd({
+                  ...data,
+                  amount: grandTotal
+                });
+
+                onClose();
+              }}
+              style={{
+                flex: 1,
+                height: '40px',
+                background: ACCENT,
+                color: tc.isDark ? '#0B2B26' : '#DAF1DE',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: 700,
+                fontSize: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                whiteSpace: 'nowrap'
+              }}
             >
-              <Check size={13} /> Add to Package
+              <Check size={13} />
+              Add to Package
             </button>
           </div>
         </div>
@@ -316,12 +352,15 @@ function InvoiceBuilderModal({ isDark, tc, onClose, onAdd }: {
 
 export function InvoicePackage() {
   const { shipmentId } = useParams();
+  const location = useLocation();
+  const invoice = location.state?.invoice;
   const tc = useTC();
   const ACCENT = tc.accent;
-  const [recipientEmail, setRecipientEmail] = useState('finance@tiffany.com');
+  const [recipientEmail, setRecipientEmail] = useState(invoice?.email ?? 'finance@tiffany.com');
   const [showSuccess, setShowSuccess] = useState(false);
   const [documents, setDocuments] = useState<Document[]>(initialDocuments);
   const [showBuilder, setShowBuilder] = useState(false);
+  const [invoiceAddedSuccess, setInvoiceAddedSuccess] = useState(false);
   const uploadRef = useRef<HTMLInputElement>(null);
 
   const lastSentDate = '2026-06-05';
@@ -336,6 +375,39 @@ export function InvoicePackage() {
   }, {} as Record<string, number>);
 
   // Selection helpers
+
+const documentLinks: Record<string, string> = {
+  'Master Invoice - MLCA-2026-001847':
+    '/documents/Master_Invoice_MLCA-2026-001847.pdf',
+
+  'Commercial Invoice - CI-2026-001847':
+    '/documents/Commercial_Invoice_CI-2026-001847.pdf',
+
+  'Customs Declaration & Duty Receipt':
+    '/documents/Customs_Declaration_and_Duty_Receipt.pdf',
+
+  'UK Export Authorization Certificate':
+    '/documents/UK_Export_Authorization_Certificate.pdf',
+
+  'US Import Authorization Certificate':
+    '/documents/US_Import_Authorization_Certificate.pdf',
+
+  'Insurance Certificate & Policy':
+    '/documents/Insurance_Certificate_and_Policy.pdf',
+
+  'Bill of Lading - Lufthansa LH8234':
+    '/documents/Bill_of_Lading_Lufthansa_LH8234.pdf',
+
+  'Chain of Custody Documentation':
+    '/documents/Chain_of_Custody_Documentation.pdf',
+
+  'Security Seal Verification Reports':
+    '/documents/Security_Seal_Verification_Reports.pdf',
+
+  'Vault Storage Receipts':
+    '/documents/Vault_Storage_Receipts.pdf',
+};
+
   const selectedDocs = documents.filter(d => d.selected);
   const allSelected = documents.length > 0 && documents.every(d => d.selected);
   const someSelected = documents.some(d => d.selected) && !allSelected;
@@ -344,10 +416,12 @@ export function InvoicePackage() {
   const toggleDoc = (id: string) => setDocuments(docs => docs.map(d => d.id === id ? { ...d, selected: !d.selected } : d));
   const removeDoc = (id: string) => setDocuments(docs => docs.filter(d => d.id !== id));
 
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+const handleUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>
+    ) => {
     const files = Array.from(e.target.files ?? []);
     const newDocs: Document[] = files.map((f, i) => ({
-      id: `upload-${Date.now()}-${i}`,
+      id: generateId(),
       name: f.name.replace(/\.[^.]+$/, ''),
       category: 'Invoice',
       size: `${(f.size / 1024 / 1024).toFixed(1)} MB`,
@@ -356,25 +430,187 @@ export function InvoicePackage() {
       selected: true,
     }));
     setDocuments(prev => [...prev, ...newDocs]);
-    e.target.value = '';
+    e.target.value = '';setDocuments(prev => [...prev, ...newDocs]);
+
+    try {
+
+      const uploadedFile = files[0];
+
+console.log("invoice =", invoice);
+console.log("client =", invoice?.client);
+console.log("amount =", invoice?.amount);
+console.log("dueDate =", invoice?.dueDate);
+console.log("subtotal =", subtotal);
+      await emailjs.send(
+        INVOICE_SERVICE_ID,
+        INVOICE_TEMPLATE_ID,
+        {
+          to_email: recipientEmail,
+
+          invoice_number: uploadedFile.name,
+
+          client_name: invoice?.client,
+
+          amount: invoice?.amount,
+
+          due_date: invoice?.dueDate,
+
+          action_type: 'Uploaded'
+        },
+        INVOICE_PUBLIC_KEY
+      );
+
+      console.log('Upload Invoice Email Sent');
+      setInvoiceAddedSuccess(true);
+
+      setTimeout(() => {
+        setInvoiceAddedSuccess(false);
+      }, 3000);
+
+    }
+    catch (error) {
+
+      console.error(
+        'Upload Invoice Email Error',
+        error
+      );
+    }
+
+  e.target.value = '';
   };
 
-  const handleBuilderAdd = (name: string) => {
-    const doc: Document = {
-      id: `created-${Date.now()}`,
-      name,
-      category: 'Invoice',
-      size: '0.4 MB',
-      pages: 1,
-      source: 'created',
-      selected: true,
-    };
-    setDocuments(prev => [...prev, doc]);
+const handleBuilderAdd = async (
+  invoiceData: BuilderData
+) => {
+
+  const doc: Document = {
+    id: generateId(),
+    name: `Custom Invoice - ${invoiceData.invoiceNumber}`,
+    category: 'Invoice',
+    size: '0.4 MB',
+    pages: 1,
+    source: 'created',
+    selected: true,
   };
 
-  const handleSend = () => {
+  setDocuments(prev => [...prev, doc]);
+
+  try {
+
+    await emailjs.send(
+      INVOICE_SERVICE_ID,
+      INVOICE_TEMPLATE_ID,
+      {
+        to_email: recipientEmail,
+
+        invoice_number:
+          invoiceData.invoiceNumber,
+
+        client_name:
+          invoiceData.clientName,
+
+        amount:
+          invoiceData.amount?.toLocaleString(),
+
+        due_date:
+          invoiceData.dueDate,
+
+        action_type: 'Created'
+      },
+      INVOICE_PUBLIC_KEY
+    );
+
+    setInvoiceAddedSuccess(true);
+
+    setTimeout(() => {
+      setInvoiceAddedSuccess(false);
+    }, 3000);
+
+  } catch (error) {
+
+    console.error(
+      'Invoice Email Error',
+      error
+    );
+  }
+};
+
+  const buildDocumentsHtml = () => {
+  return selectedDocs
+    .map((doc) => {
+      const fileUrl =
+        documentLinks[doc.name] || '#';
+
+      return `
+        <tr>
+          <td style="padding:12px;border:1px solid #ddd;">
+            ${doc.name}
+          </td>
+          <td style="padding:12px;border:1px solid #ddd;">
+            ${doc.category}
+          </td>
+          <td style="padding:12px;border:1px solid #ddd;">
+            <a href="${window.location.origin}${fileUrl}">
+              Download PDF
+            </a>
+          </td>
+        </tr>
+      `;
+    })
+    .join('');
+};
+
+ const [sending, setSending] = useState(false);
+ const handleSend = async () => {
+  try {
+    setSending(true);
+    console.log('Recipient Email:', recipientEmail);
+    console.log({
+  to_email: recipientEmail,
+  client_name: invoice?.client,
+  tracking_no: invoice?.shipmentId,
+});
+    const paymentUrl =
+    `${window.location.origin}/payment/${invoice.shipmentId}` +
+    `?client=${encodeURIComponent(invoice.client)}` +
+    `&amount=${encodeURIComponent(invoice.amount)}`;
+
+    await emailjs.send(
+      PACKAGE_SERVICE_ID,
+      PACKAGE_TEMPLATE_ID,
+      {
+        to_email: recipientEmail,
+
+        client_name: invoice?.client,
+
+        tracking_no: invoice?.shipmentId,
+
+        amount: invoice.amount,
+
+        due_date: invoice?.dueDate,
+
+        document_count: selectedDocs.length,
+
+        documents_html: buildDocumentsHtml(),
+
+        payment_url: paymentUrl,
+      },
+      PACKAGE_PUBLIC_KEY
+    );
+
     setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
+
+    setTimeout(() => {
+      setShowSuccess(false);
+    }, 3000);
+  }
+  catch (error) {
+    console.error(error);
+    alert('Failed to send package');
+  }
+  finally {
+    setSending(false);
+  }
   };
 
   const sourceLabel: Record<Document['source'], { label: string; color: string }> = {
@@ -402,12 +638,16 @@ export function InvoicePackage() {
           <div>
             <h1 style={{ fontSize: '18px', fontWeight: 600 }} className="mb-1">Consolidated Invoice Package</h1>
             <div className={`flex flex-col md:flex-row md:items-center gap-1 md:gap-3 text-xs md:text-sm ${tc.subtext}`}>
-              <span>Tracking: <code style={{ color: ACCENT }}>MLCA-2026-001847</code></span>
-              <span className="hidden md:inline">·</span>
-              <span>Client: Tiffany & Co.</span>
-              <span className="hidden md:inline">·</span>
-              <span>Due: June 18, 2026</span>
-            </div>
+            <code style={{ color: ACCENT }}>
+                {invoice?.shipmentId}
+            </code>
+
+            <span className="hidden md:inline">·</span>
+            <span>Client: {invoice?.client}</span>
+
+            <span className="hidden md:inline">·</span>
+            <span>Due: {invoice?.dueDate}</span>
+        </div>
           </div>
           <div>
             <div className={`text-xs ${tc.subtext}`}>Total Payable</div>
@@ -571,6 +811,27 @@ export function InvoicePackage() {
                 </div>
               )}
             </div>
+
+            {/* Invoice Success Notification */}
+              {invoiceAddedSuccess && (
+                <div className="bg-green-500/20 border border-green-500/30 rounded-lg p-4 flex items-start gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+
+                  <div>
+                    <div
+                      style={{ fontWeight: 600 }}
+                      className="text-green-400"
+                    >
+                      Invoice Created
+                    </div>
+
+                    <div className="text-sm text-green-400/80">
+                      Invoice added to package and notification sent to {recipientEmail}
+                    </div>
+                  </div>
+                </div>
+              )}
+
 
             {/* Package Contents with checkboxes */}
             <div className={`${tc.cardBg} border ${tc.border} rounded-lg overflow-hidden`}>

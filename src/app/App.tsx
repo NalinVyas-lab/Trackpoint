@@ -21,7 +21,7 @@ export default function App() {
           <Route path="/accounts-receivable" element={<AccountsReceivable />} />
           <Route path="/invoice/:shipmentId" element={<InvoicePackage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+          </Routes>
       </BrowserRouter>
     </ThemeProvider>
   );
