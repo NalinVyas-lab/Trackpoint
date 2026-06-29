@@ -421,10 +421,7 @@ export function TrackInvoice() {
   const handleSendReminder = async (inv: Invoice) => {
   try {
 
-    const paymentUrl =
-    `${window.location.origin}/payment/${inv.shipmentId}` +
-    `?client=${encodeURIComponent(inv.client)}` +
-    `&amount=${encodeURIComponent(inv.amount)}`;
+    const paymentUrl = "http://192.168.1.8:8000/checkout/";
 
     const templateParams = {
       client_name: inv.client,
