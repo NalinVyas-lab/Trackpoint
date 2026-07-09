@@ -5,7 +5,6 @@ import { useTC } from '../contexts/ThemeContext';
 import { NavBar } from './NavBar';
 import { FilterPanel, ActiveFilterChips, EMPTY_FILTERS, countActiveFilters, isDateInRange } from './FilterPanel';
 import type { FilterState } from './FilterPanel';
-import emailjs from '@emailjs/browser';
 
 type InvoiceStatus = 'Draft' | 'Approved' | 'Processed' | 'Reminded' | 'Refused' | 'Paid' | 'Partially Paid' | 'Overdue';
 
@@ -13,7 +12,6 @@ interface Invoice {
   id: string;
   invoiceNo: string;
   client: string;
-  email: string;
   shipmentId: string;
   amount: string;
   dueDate: string;
@@ -35,35 +33,35 @@ interface OutstandingInvoice {
 
 const mockInvoices: Invoice[] = [
   // Tiffany & Co. — 2 invoices
-  { id: '1',  invoiceNo: 'INV-2026-0847', client: 'Tiffany & Co.', email: 'proclinkdemo1@gmail.com',       shipmentId: 'MLCA-2026-001847', amount: '$245,650.00',  dueDate: '2026-06-18', status: 'Processed',      numFiles: 7  },
-  { id: '13', invoiceNo: 'INV-2026-0830', client: 'Tiffany & Co.',  email: 'proclinkdemo1@gmail.com',      shipmentId: 'MLCA-2026-001830', amount: '$182,400.00',  dueDate: '2026-06-28', status: 'Approved',        numFiles: 5  },
+  { id: '1',  invoiceNo: 'INV-2026-0847', client: 'Tiffany & Co.',        shipmentId: 'MLCA-2026-001847', amount: '$245,650.00',  dueDate: '2026-06-18', status: 'Processed',      numFiles: 7  },
+  { id: '13', invoiceNo: 'INV-2026-0830', client: 'Tiffany & Co.',        shipmentId: 'MLCA-2026-001830', amount: '$182,400.00',  dueDate: '2026-06-28', status: 'Approved',        numFiles: 5  },
   // Cartier International — 2 invoices
-  { id: '2',  invoiceNo: 'INV-2026-0846', client: 'Cartier International', email: 'proclinkdemo1@gmail.com', shipmentId: 'MLCA-2026-001846', amount: '$187,200.00',  dueDate: '2026-06-20', status: 'Approved',        numFiles: 4  },
-  { id: '14', invoiceNo: 'INV-2026-0829', client: 'Cartier International', email: 'proclinkdemo1@gmail.com', shipmentId: 'MLCA-2026-001829', amount: '$210,000.00',  dueDate: '2026-07-01', status: 'Draft',           numFiles: 3  },
+  { id: '2',  invoiceNo: 'INV-2026-0846', client: 'Cartier International', shipmentId: 'MLCA-2026-001846', amount: '$187,200.00',  dueDate: '2026-06-20', status: 'Approved',        numFiles: 4  },
+  { id: '14', invoiceNo: 'INV-2026-0829', client: 'Cartier International', shipmentId: 'MLCA-2026-001829', amount: '$210,000.00',  dueDate: '2026-07-01', status: 'Draft',           numFiles: 3  },
   // UBS AG — 2 invoices
-  { id: '3',  invoiceNo: 'INV-2026-0845', client: 'UBS AG',      email: 'proclinkdemo1@gmail.com',          shipmentId: 'MLCA-2026-001845', amount: '$312,800.00',  dueDate: '2026-06-06', status: 'Overdue',         numFiles: 9  },
-  { id: '15', invoiceNo: 'INV-2026-0828', client: 'UBS AG',     email: 'proclinkdemo1@gmail.com',           shipmentId: 'MLCA-2026-001828', amount: '$164,000.00',  dueDate: '2026-06-22', status: 'Reminded',        numFiles: 6  },
+  { id: '3',  invoiceNo: 'INV-2026-0845', client: 'UBS AG',                shipmentId: 'MLCA-2026-001845', amount: '$312,800.00',  dueDate: '2026-06-06', status: 'Overdue',         numFiles: 9  },
+  { id: '15', invoiceNo: 'INV-2026-0828', client: 'UBS AG',                shipmentId: 'MLCA-2026-001828', amount: '$164,000.00',  dueDate: '2026-06-22', status: 'Reminded',        numFiles: 6  },
   // Van Cleef & Arpels — 2 invoices
-  { id: '4',  invoiceNo: 'INV-2026-0844', client: 'Van Cleef & Arpels', email: 'proclinkdemo1@gmail.com',   shipmentId: 'MLCA-2026-001844', amount: '$98,400.00',   dueDate: '2026-06-03', status: 'Paid',            numFiles: 5  },
-  { id: '16', invoiceNo: 'INV-2026-0827', client: 'Van Cleef & Arpels', email: 'proclinkdemo1@gmail.com',   shipmentId: 'MLCA-2026-001827', amount: '$137,000.00',  dueDate: '2026-06-25', status: 'Processed',       numFiles: 8  },
+  { id: '4',  invoiceNo: 'INV-2026-0844', client: 'Van Cleef & Arpels',    shipmentId: 'MLCA-2026-001844', amount: '$98,400.00',   dueDate: '2026-06-03', status: 'Paid',            numFiles: 5  },
+  { id: '16', invoiceNo: 'INV-2026-0827', client: 'Van Cleef & Arpels',    shipmentId: 'MLCA-2026-001827', amount: '$137,000.00',  dueDate: '2026-06-25', status: 'Processed',       numFiles: 8  },
   // Royal Bank of Canada — 2 invoices
-  { id: '5',  invoiceNo: 'INV-2026-0843', client: 'Royal Bank of Canada', email: 'proclinkdemo1@gmail.com', shipmentId: 'MLCA-2026-001843', amount: '$145,500.00',  dueDate: '2026-06-09', status: 'Reminded',        numFiles: 6  },
-  { id: '17', invoiceNo: 'INV-2026-0826', client: 'Royal Bank of Canada', email: 'proclinkdemo1@gmail.com', shipmentId: 'MLCA-2026-001826', amount: '$228,000.00',  dueDate: '2026-06-30', status: 'Approved',        numFiles: 7  },
+  { id: '5',  invoiceNo: 'INV-2026-0843', client: 'Royal Bank of Canada',  shipmentId: 'MLCA-2026-001843', amount: '$145,500.00',  dueDate: '2026-06-09', status: 'Reminded',        numFiles: 6  },
+  { id: '17', invoiceNo: 'INV-2026-0826', client: 'Royal Bank of Canada',  shipmentId: 'MLCA-2026-001826', amount: '$228,000.00',  dueDate: '2026-06-30', status: 'Approved',        numFiles: 7  },
   // Bulgari — 2 invoices
-  { id: '6',  invoiceNo: 'INV-2026-0842', client: 'Bulgari',        email: 'proclinkdemo1@gmail.com',       shipmentId: 'MLCA-2026-001842', amount: '$168,050.00',  dueDate: '2026-06-22', status: 'Draft',           numFiles: 3  },
-  { id: '18', invoiceNo: 'INV-2026-0825', client: 'Bulgari',      email: 'proclinkdemo1@gmail.com',         shipmentId: 'MLCA-2026-001825', amount: '$376,000.00',  dueDate: '2026-05-30', status: 'Paid',            numFiles: 9  },
+  { id: '6',  invoiceNo: 'INV-2026-0842', client: 'Bulgari',               shipmentId: 'MLCA-2026-001842', amount: '$168,050.00',  dueDate: '2026-06-22', status: 'Draft',           numFiles: 3  },
+  { id: '18', invoiceNo: 'INV-2026-0825', client: 'Bulgari',               shipmentId: 'MLCA-2026-001825', amount: '$376,000.00',  dueDate: '2026-05-30', status: 'Paid',            numFiles: 9  },
   // Sotheby's — 2 invoices
-  { id: '7',  invoiceNo: 'INV-2026-0841', client: "Sotheby's",     email: 'proclinkdemo1@gmail.com',        shipmentId: 'MLCA-2026-001841', amount: '$92,300.00',   dueDate: '2026-06-15', status: 'Partially Paid',  numFiles: 11 },
-  { id: '19', invoiceNo: 'INV-2026-0824', client: "Sotheby's",      email: 'proclinkdemo1@gmail.com',       shipmentId: 'MLCA-2026-001824', amount: '$192,500.00',  dueDate: '2026-06-27', status: 'Draft',           numFiles: 4  },
+  { id: '7',  invoiceNo: 'INV-2026-0841', client: "Sotheby's",             shipmentId: 'MLCA-2026-001841', amount: '$92,300.00',   dueDate: '2026-06-15', status: 'Partially Paid',  numFiles: 11 },
+  { id: '19', invoiceNo: 'INV-2026-0824', client: "Sotheby's",             shipmentId: 'MLCA-2026-001824', amount: '$192,500.00',  dueDate: '2026-06-27', status: 'Draft',           numFiles: 4  },
   // Christie's — 2 invoices
-  { id: '8',  invoiceNo: 'INV-2026-0840', client: "Christie's",     email: 'proclinkdemo1@gmail.com',       shipmentId: 'MLCA-2026-001840', amount: '$410,000.00',  dueDate: '2026-05-28', status: 'Refused',         numFiles: 8  },
-  { id: '20', invoiceNo: 'INV-2026-0823', client: "Christie's",    email: 'proclinkdemo1@gmail.com',        shipmentId: 'MLCA-2026-001823', amount: '$341,000.00',  dueDate: '2026-06-19', status: 'Approved',        numFiles: 6  },
+  { id: '8',  invoiceNo: 'INV-2026-0840', client: "Christie's",            shipmentId: 'MLCA-2026-001840', amount: '$410,000.00',  dueDate: '2026-05-28', status: 'Refused',         numFiles: 8  },
+  { id: '20', invoiceNo: 'INV-2026-0823', client: "Christie's",            shipmentId: 'MLCA-2026-001823', amount: '$341,000.00',  dueDate: '2026-06-19', status: 'Approved',        numFiles: 6  },
   // Graff Diamonds — 2 invoices
-  { id: '11', invoiceNo: 'INV-2026-0837', client: 'Graff Diamonds',  email: 'proclinkdemo1@gmail.com',      shipmentId: 'MLCA-2026-001837', amount: '$887,500.00',  dueDate: '2026-05-15', status: 'Overdue',         numFiles: 10 },
-  { id: '21', invoiceNo: 'INV-2026-0820', client: 'Graff Diamonds',    email: 'proclinkdemo1@gmail.com',    shipmentId: 'MLCA-2026-001820', amount: '$645,000.00',  dueDate: '2026-06-24', status: 'Processed',       numFiles: 12 },
+  { id: '11', invoiceNo: 'INV-2026-0837', client: 'Graff Diamonds',        shipmentId: 'MLCA-2026-001837', amount: '$887,500.00',  dueDate: '2026-05-15', status: 'Overdue',         numFiles: 10 },
+  { id: '21', invoiceNo: 'INV-2026-0820', client: 'Graff Diamonds',        shipmentId: 'MLCA-2026-001820', amount: '$645,000.00',  dueDate: '2026-06-24', status: 'Processed',       numFiles: 12 },
   // Harry Winston — 2 invoices
-  { id: '12', invoiceNo: 'INV-2026-0836', client: 'Harry Winston',   email: 'proclinkdemo1@gmail.com',      shipmentId: 'MLCA-2026-001836', amount: '$234,100.00',  dueDate: '2026-06-10', status: 'Paid',            numFiles: 6  },
-  { id: '22', invoiceNo: 'INV-2026-0819', client: 'Harry Winston',    email: 'proclinkdemo1@gmail.com',     shipmentId: 'MLCA-2026-001819', amount: '$318,000.00',  dueDate: '2026-06-21', status: 'Reminded',        numFiles: 8  },
+  { id: '12', invoiceNo: 'INV-2026-0836', client: 'Harry Winston',         shipmentId: 'MLCA-2026-001836', amount: '$234,100.00',  dueDate: '2026-06-10', status: 'Paid',            numFiles: 6  },
+  { id: '22', invoiceNo: 'INV-2026-0819', client: 'Harry Winston',         shipmentId: 'MLCA-2026-001819', amount: '$318,000.00',  dueDate: '2026-06-21', status: 'Reminded',        numFiles: 8  },
 ];
 
 const outstandingInvoices: OutstandingInvoice[] = [
@@ -324,10 +322,6 @@ export function TrackInvoice() {
   const toggleGroup = (company: string) =>
     setCollapsedGroups(prev => { const n = new Set(prev); n.has(company) ? n.delete(company) : n.add(company); return n; });
 
-  const SERVICE_ID = "service_bf3li5g";
-  const TEMPLATE_ID = "template_fltkr1b";
-  const PUBLIC_KEY = "pgUu6KiRV8clsNAZD";
-
   // Tab state
   const [activeTab, setActiveTab] = useState<'all' | 'outstanding'>('all');
 
@@ -418,49 +412,12 @@ export function TrackInvoice() {
   const countByStatus = (s: InvoiceStatus) =>
     mockInvoices.filter(inv => getEffectiveStatus(inv) === s).length;
 
-  const handleSendReminder = async (inv: Invoice) => {
-  try {
-
-    const paymentUrl = "http://192.168.1.8:8000/checkout/";
-
-    const templateParams = {
-      client_name: inv.client,
-      invoice_no: inv.invoiceNo,
-      shipment_id: inv.shipmentId,
-      amount: inv.amount,
-      due_date: inv.dueDate,
-      to_email: "proclinkdemo1@gmail.com",
-      payment_url: paymentUrl,
-    };
-
-    await emailjs.send(
-      SERVICE_ID,
-      TEMPLATE_ID,
-      templateParams,
-      PUBLIC_KEY
-    );
-
-    setReminderCounts(prev => ({
-      ...prev,
-      [inv.id]: (prev[inv.id] || 0) + 1
-    }));
-
+  const handleSendReminder = (inv: Invoice) => {
+    setReminderCounts(prev => ({ ...prev, [inv.id]: (prev[inv.id] || 0) + 1 }));
     const effective = getEffectiveStatus(inv);
-
     if (effective !== 'Reminded') {
-      setOverrideReminded(prev => {
-        const n = new Set(prev);
-        n.add(inv.id);
-        return n;
-      });
+      setOverrideReminded(prev => { const n = new Set(prev); n.add(inv.id); return n; });
     }
-
-    alert(`Reminder sent to ${inv.client}`);
-
-  } catch (error) {
-    console.error(error);
-    alert("Failed to send reminder");
-  }
   };
 
   const handleSendReminderOutstanding = (id: string) => {
@@ -700,11 +657,7 @@ export function TrackInvoice() {
                             </button>
                           </td>
                           <td className="px-4 py-3.5">
-                            <button onClick={() => navigate(`/invoice/${inv.shipmentId}`, {
-                              state: {
-                                invoice: inv,
-                              },
-                            })} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg whitespace-nowrap" style={{ background: `${ACCENT}15`, color: ACCENT, border: `1px solid ${ACCENT}30` }}>
+                            <button onClick={() => navigate(`/invoice/${inv.shipmentId}`)} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg whitespace-nowrap" style={{ background: `${ACCENT}15`, color: ACCENT, border: `1px solid ${ACCENT}30` }}>
                               <Package className="w-3.5 h-3.5" /> View
                             </button>
                           </td>
@@ -755,11 +708,7 @@ export function TrackInvoice() {
                         </div>
                         <div className="flex gap-2 flex-wrap">
                           <button
-                            onClick={() => navigate(`/invoice/${inv.shipmentId}`, {
-                              state: {
-                                invoice: inv,
-                              },
-                            })}
+                            onClick={() => navigate(`/invoice/${inv.shipmentId}`)}
                             className="flex items-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold transition-all"
                             style={{ background: `${ACCENT}15`, color: ACCENT, border: `1px solid ${ACCENT}30` }}
                           >
@@ -896,13 +845,7 @@ export function TrackInvoice() {
                           </button>
                         </td>
                         <td className="px-4 py-3.5">
-                          <button onClick={() =>
-                            navigate(`/invoice/${inv.shipmentId}`, {
-                              state: {
-                                invoice: inv,
-                              },
-                            })
-                          }>
+                          <button onClick={() => navigate(`/invoice/${inv.shipmentId}`)} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg whitespace-nowrap" style={{ background: `${ACCENT}15`, color: ACCENT, border: `1px solid ${ACCENT}30` }}>
                             <Package className="w-3.5 h-3.5" /> View
                           </button>
                         </td>
@@ -946,11 +889,7 @@ export function TrackInvoice() {
                     </div>
                     <div className="flex gap-2 flex-wrap">
                       <button
-                        onClick={() => navigate(`/invoice/${inv.shipmentId}`, {
-                          state: {
-                            invoice: inv,
-                          },
-                        })}
+                        onClick={() => navigate(`/invoice/${inv.shipmentId}`)}
                         className="flex items-center gap-1.5 py-2 px-3 rounded-lg text-xs font-semibold transition-all"
                         style={{ background: `${ACCENT}15`, color: ACCENT, border: `1px solid ${ACCENT}30` }}
                       >

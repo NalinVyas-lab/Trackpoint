@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import {
   Search, TrendingUp, Package, Clock, CheckCircle, DollarSign,
-  Globe, Plane, Ship, Truck, Pencil, Check, X,
+  Globe, Plane, Ship, Truck, Pencil, Check, X, ChevronRight,
 } from 'lucide-react';
 import { useTC } from '../contexts/ThemeContext';
 import { NavBar } from './NavBar';
 import { WorldMap } from './WorldMap';
 
 type TransportMode = 'air' | 'sea' | 'road';
-type ShipmentStatus = 'In Transit' | 'Delivered' | 'Pending Authorization' | 'Active';
+type ShipmentStatus = 'In Transit' | 'Delivered' | 'Pending Authorization' | 'Active' | 'Delayed';
 
 interface Shipment {
   id: string;
@@ -42,7 +42,7 @@ const initialShipments: Shipment[] = [
   },
   {
     id: '3', trackingNumber: 'MLCA-2026-001845', origin: 'Zurich, Switzerland', destination: 'Singapore',
-    value: '$3,200,000', status: 'Active', eta: '2026-06-06', client: 'UBS AG',
+    value: '$3,200,000', status: 'Delayed', eta: '2026-06-06', client: 'UBS AG',
     currentLocation: 'Indian Ocean', transportMode: 'sea', lastRecordTime: '2026-06-07 06:55 UTC',
     latitude: '5.1500', longitude: '72.4800',
   },
@@ -54,7 +54,7 @@ const initialShipments: Shipment[] = [
   },
   {
     id: '5', trackingNumber: 'MLCA-2026-001843', origin: 'New York, USA', destination: 'Sydney, Australia',
-    value: '$1,450,000', status: 'In Transit', eta: '2026-06-09', client: 'Royal Bank of Canada',
+    value: '$1,450,000', status: 'Delayed', eta: '2026-06-09', client: 'Royal Bank of Canada',
     currentLocation: 'Pacific Ocean', transportMode: 'sea', lastRecordTime: '2026-06-07 22:08 UTC',
     latitude: '-15.4200', longitude: '-162.3100',
   },
@@ -248,7 +248,8 @@ export function Dashboard() {
       case 'In Transit': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
       case 'Delivered': return 'bg-green-500/20 text-green-400 border-green-500/30';
       case 'Pending Authorization': return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
-      case 'Active': return '';
+      case 'Active': return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
+      case 'Delayed': return 'bg-red-500/20 text-red-400 border-red-500/30';
     }
   };
 
@@ -340,7 +341,14 @@ export function Dashboard() {
                 {shipments.map(s => {
                   const modeColor = getModeColor(s.transportMode);
                   return (
-                    <tr key={s.id} className={`border-b ${tc.border} ${tc.hoverBg} transition-colors`}>
+                    <tr
+                      key={s.id}
+                      onClick={() => navigate(`/tracking/${s.trackingNumber}`)}
+                      className={`border-b ${tc.border} transition-colors cursor-pointer`}
+                      style={{ background: 'transparent' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = tc.isDark ? 'rgba(186,171,72,0.04)' : 'rgba(186,171,72,0.03)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                    >
                       {/* Tracking Number */}
                       <td className="px-4 py-3.5">
                         <code className="text-sm" style={{ color: tc.accent }}>{s.trackingNumber}</code>
@@ -385,21 +393,24 @@ export function Dashboard() {
                       </td>
                       {/* ETA */}
                       <td className={`px-4 py-3.5 text-sm ${tc.subtext}`} style={{ whiteSpace: 'nowrap' }}>{s.eta}</td>
-                      {/* Edit */}
+                      {/* Edit + navigate indicator */}
                       <td className="px-4 py-3.5">
-                        <button
-                          onClick={() => setEditingId(s.id)}
-                          className="flex items-center gap-1.5 text-xs transition-colors"
-                          style={{
-                            padding: '5px 10px', borderRadius: '6px',
-                            background: tc.isDark ? '#1a2535' : '#f0f4f8',
-                            border: `1px solid ${tc.isDark ? '#283548' : '#d0dae6'}`,
-                            color: tc.isDark ? '#8aa0b8' : '#4a6070',
-                            cursor: 'pointer', whiteSpace: 'nowrap',
-                          }}
-                        >
-                          <Pencil size={11} /> Edit
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={e => { e.stopPropagation(); setEditingId(s.id); }}
+                            className="flex items-center gap-1.5 text-xs transition-colors"
+                            style={{
+                              padding: '5px 10px', borderRadius: '6px',
+                              background: tc.isDark ? '#1a2535' : '#f0f4f8',
+                              border: `1px solid ${tc.isDark ? '#283548' : '#d0dae6'}`,
+                              color: tc.isDark ? '#8aa0b8' : '#4a6070',
+                              cursor: 'pointer', whiteSpace: 'nowrap',
+                            }}
+                          >
+                            <Pencil size={11} /> Edit
+                          </button>
+                          <ChevronRight size={15} color={tc.isDark ? '#3a5060' : '#b0c0d0'} />
+                        </div>
                       </td>
                     </tr>
                   );
@@ -413,7 +424,11 @@ export function Dashboard() {
             {shipments.map(s => {
               const modeColor = getModeColor(s.transportMode);
               return (
-                <div key={s.id} className="p-4">
+                <div
+                  key={s.id}
+                  onClick={() => navigate(`/tracking/${s.trackingNumber}`)}
+                  className="p-4 cursor-pointer active:opacity-80"
+                >
                   <div className="flex items-start justify-between mb-2.5">
                     <div>
                       <code className="text-sm" style={{ color: tc.accent }}>{s.trackingNumber}</code>
@@ -424,7 +439,7 @@ export function Dashboard() {
                         {s.status}
                       </span>
                       <button
-                        onClick={() => setEditingId(s.id)}
+                        onClick={e => { e.stopPropagation(); setEditingId(s.id); }}
                         style={{
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           width: '26px', height: '26px', borderRadius: '6px',
@@ -436,6 +451,7 @@ export function Dashboard() {
                       >
                         <Pencil size={11} />
                       </button>
+                      <ChevronRight size={14} color={tc.isDark ? '#3a5060' : '#b0c0d0'} />
                     </div>
                   </div>
                   <div className={`space-y-1.5 text-sm mb-3 ${tc.subtext}`}>
